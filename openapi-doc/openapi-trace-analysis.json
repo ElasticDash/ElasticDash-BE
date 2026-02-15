@@ -1,0 +1,538 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ElasticDash Trace Analysis API",
+    "description": "AI-powered trace analysis and prompt fingerprinting endpoints for detecting prompt drift and system changes",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/trace-analysis",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/trace-analysis",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "TraceAnalysisResult": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "trace_id": { "type": "string" },
+          "feature_id": { "type": "integer" },
+          "prompt_fingerprint": { "type": "string", "description": "Hash of the prompt structure" },
+          "root_cause": {
+            "type": "string",
+            "enum": ["SYSTEM_CHANGED", "MODEL_INSTABILITY", "USER_INTENT_CHANGED", "PROMPT_AD_HOC", "NO_PREVIOUS_DATA"],
+            "description": "Detected root cause of prompt drift"
+          },
+          "confidence_score": {
+            "type": "number",
+            "minimum": 0,
+            "maximum": 1,
+            "description": "Confidence level of the analysis"
+          },
+          "analysis_details": {
+            "type": "object",
+            "description": "Detailed analysis data"
+          },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "PromptFingerprint": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "prompt_fingerprint": { "type": "string", "description": "Unique hash of prompt structure" },
+          "feature_id": { "type": "integer" },
+          "classification": {
+            "type": "string",
+            "enum": ["stable_template", "unstable", "ad_hoc", "pending"],
+            "description": "Classification of the prompt fingerprint"
+          },
+          "seen_count": {
+            "type": "integer",
+            "description": "Number of times this fingerprint has been seen"
+          },
+          "first_seen_at": { "type": "string", "format": "date-time" },
+          "last_seen_at": { "type": "string", "format": "date-time" },
+          "example_trace_id": { "type": "string" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "AnalysisStats": {
+        "type": "object",
+        "properties": {
+          "fingerprints": {
+            "type": "object",
+            "properties": {
+              "total_fingerprints": { "type": "integer" },
+              "features_with_fingerprints": { "type": "integer" },
+              "stable_templates": { "type": "integer" },
+              "unstable_prompts": { "type": "integer" },
+              "ad_hoc_prompts": { "type": "integer" },
+              "pending_classification": { "type": "integer" },
+              "avg_seen_count": { "type": "number" }
+            }
+          },
+          "drift_analysis": {
+            "type": "object",
+            "properties": {
+              "total_analyses": { "type": "integer" },
+              "features_analyzed": { "type": "integer" },
+              "system_changes": { "type": "integer" },
+              "model_instabilities": { "type": "integer" },
+              "user_intent_changes": { "type": "integer" },
+              "ad_hoc_prompts": { "type": "integer" },
+              "first_occurrences": { "type": "integer" },
+              "avg_confidence": { "type": "number" }
+            }
+          },
+          "timestamp": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "status": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/trace-analysis/{traceId}": {
+      "get": {
+        "summary": "Get analysis result for a specific trace",
+        "description": "Retrieve the AI-powered analysis result for a specific trace, including prompt fingerprint and drift detection.",
+        "tags": ["Analysis Results"],
+        "parameters": [
+          {
+            "name": "traceId",
+            "in": "path",
+            "required": true,
+            "description": "The trace ID to get analysis for",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved analysis result",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TraceAnalysisResult" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - traceId required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 400,
+                  "message": "traceId is required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Analysis result not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 404,
+                  "message": "Analysis result not found for this trace"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trace-analysis/fingerprint/{fingerprint}": {
+      "get": {
+        "summary": "Get fingerprint record by hash",
+        "description": "Retrieve detailed information about a specific prompt fingerprint by its hash value.",
+        "tags": ["Fingerprints"],
+        "parameters": [
+          {
+            "name": "fingerprint",
+            "in": "path",
+            "required": true,
+            "description": "The fingerprint hash to retrieve",
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved fingerprint",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/PromptFingerprint" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - fingerprint required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Fingerprint not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 404,
+                  "message": "Fingerprint not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trace-analysis/fingerprints/feature/{featureId}": {
+      "get": {
+        "summary": "Get all fingerprints for a feature",
+        "description": "Retrieve all prompt fingerprints associated with a specific feature.",
+        "tags": ["Fingerprints"],
+        "parameters": [
+          {
+            "name": "featureId",
+            "in": "path",
+            "required": true,
+            "description": "The feature ID to get fingerprints for",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved fingerprints",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/PromptFingerprint" }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - featureId required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trace-analysis/drift-history/{featureId}": {
+      "get": {
+        "summary": "Get drift history for a feature",
+        "description": "Retrieve paginated analysis results showing the drift detection history for a specific feature.",
+        "tags": ["Drift Analysis"],
+        "parameters": [
+          {
+            "name": "featureId",
+            "in": "path",
+            "required": true,
+            "description": "The feature ID to get drift history for",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of results to return",
+            "schema": { "type": "integer", "default": 50 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Number of results to skip",
+            "schema": { "type": "integer", "default": 0 }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved drift history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      { "$ref": "#/components/schemas/TraceAnalysisResult" },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "classification": { "type": "string" },
+                          "fingerprint_seen_count": { "type": "integer" }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - featureId required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trace-analysis/stats/overview": {
+      "get": {
+        "summary": "Get overall statistics for prompt analysis",
+        "description": "Retrieve comprehensive statistics about fingerprints and drift analysis across all features (last 7 days for drift stats).",
+        "tags": ["Statistics"],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved overview statistics",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AnalysisStats" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trace-analysis/fingerprints/all": {
+      "get": {
+        "summary": "List all fingerprints with pagination and filtering",
+        "description": "Retrieve a paginated list of all prompt fingerprints with optional filtering by classification and seen count.",
+        "tags": ["Fingerprints"],
+        "parameters": [
+          {
+            "name": "limit",
+            "in": "query",
+            "required": false,
+            "description": "Maximum number of results to return",
+            "schema": { "type": "integer", "default": 50 }
+          },
+          {
+            "name": "offset",
+            "in": "query",
+            "required": false,
+            "description": "Number of results to skip",
+            "schema": { "type": "integer", "default": 0 }
+          },
+          {
+            "name": "classification",
+            "in": "query",
+            "required": false,
+            "description": "Filter by classification type",
+            "schema": {
+              "type": "string",
+              "enum": ["stable_template", "unstable", "ad_hoc", "pending"]
+            }
+          },
+          {
+            "name": "minSeenCount",
+            "in": "query",
+            "required": false,
+            "description": "Minimum seen count filter",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved fingerprints",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "allOf": [
+                      { "$ref": "#/components/schemas/PromptFingerprint" },
+                      {
+                        "type": "object",
+                        "properties": {
+                          "feature_name": { "type": "string" },
+                          "analysis_count": { "type": "integer" }
+                        }
+                      }
+                    ]
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/trace-analysis/features/at-risk": {
+      "get": {
+        "summary": "Get features with prompt_changed_risk flag",
+        "description": "Retrieve all features that have been flagged as at-risk for prompt changes, with their latest analysis information.",
+        "tags": ["Risk Analysis"],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved at-risk features",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "feature_name": { "type": "string" },
+                      "feature_description": { "type": "string" },
+                      "prompt_changed_risk": { "type": "boolean", "example": true },
+                      "fingerprint_count": { "type": "integer" },
+                      "last_analysis_at": { "type": "string", "format": "date-time" },
+                      "last_root_cause": { "type": "string" },
+                      "last_confidence": { "type": "number" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

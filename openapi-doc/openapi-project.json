@@ -1,0 +1,2148 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ElasticDash RAG Project Management API",
+    "description": "Comprehensive API for managing Retrieval-Augmented Generation (RAG) projects, including databases, tables, APIs, and authentication tokens. This API enables users to organize and configure multiple data sources (databases and APIs) within projects for LLM-based querying and retrieval.",
+    "version": "1.0.0",
+    "contact": {
+      "name": "ElasticDash Support"
+    }
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/project",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/project",
+      "description": "Production server"
+    }
+  ],
+  "paths": {
+    "/projects": {
+      "post": {
+        "summary": "Create a new RAG project for organizing data sources",
+        "description": "Creates a new RAG (Retrieval-Augmented Generation) project container. Projects serve as organizational units that group related databases, tables, and APIs together for unified data retrieval and querying by LLM agents.",
+        "operationId": "createProject",
+        "tags": ["Projects - Create & Manage"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectName": {
+                    "type": "string",
+                    "description": "Human-readable name for the project (e.g., 'Customer Analytics', 'Product Inventory'). This is the primary identifier shown to users.",
+                    "example": "Customer Analytics Dashboard"
+                  },
+                  "uniqueKey": {
+                    "type": "string",
+                    "description": "Unique system identifier for the project used in external references and API integrations (e.g., 'cust-analytics-001'). Must be globally unique.",
+                    "example": "cust-analytics-001"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Detailed description of the project's purpose and the data sources it contains. This helps LLM agents understand the project's scope.",
+                    "example": "Project for analyzing customer purchase history and demographics from multiple databases"
+                  }
+                },
+                "required": ["projectName", "uniqueKey"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Project created successfully with assigned ID and metadata"
+          },
+          "401": {
+            "description": "Authentication failed - user is not authenticated or token has expired"
+          },
+          "500": {
+            "description": "Server error during project creation"
+          }
+        }
+      },
+      "get": {
+        "summary": "List all RAG projects owned by the authenticated user",
+        "description": "Retrieves a complete list of all RAG projects accessible to the authenticated user. Each project contains information about its status, when it was created, and its unique identifiers.",
+        "operationId": "getProjects",
+        "tags": ["Projects - Create & Manage"],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of user's projects",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "description": "Array of RAG project objects",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "Unique project identifier" },
+                      "projectName": { "type": "string", "description": "Human-readable project name" },
+                      "uniqueKey": { "type": "string", "description": "Unique system identifier" },
+                      "description": { "type": "string", "description": "Project description and purpose" },
+                      "status": { "type": "integer", "description": "Project status (0=inactive, 1=active)" },
+                      "createdAt": { "type": "string", "format": "date-time", "description": "Timestamp when project was created" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed - user is not authenticated or token has expired"
+          },
+          "500": {
+            "description": "Server error retrieving projects"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}": {
+      "get": {
+        "summary": "Retrieve detailed information about a specific RAG project",
+        "description": "Fetches comprehensive details of a single project including its configuration, status, and metadata. Use this to understand the scope and purpose of a project before querying its data sources.",
+        "operationId": "getProjectById",
+        "tags": ["Projects - Read & Update"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The unique identifier of the project to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project details retrieved successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Project not found with the provided ID"
+          },
+          "500": {
+            "description": "Server error retrieving project details"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update project metadata and configuration",
+        "description": "Modifies project properties including name, description, and active status. This allows updating project configuration without recreating it. Use this to keep project information synchronized with organizational changes.",
+        "operationId": "updateProject",
+        "tags": ["Projects - Read & Update"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The unique identifier of the project to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectName": { "type": "string", "description": "Updated human-readable project name" },
+                  "description": { "type": "string", "description": "Updated project description and purpose" },
+                  "status": { "type": "integer", "description": "Project status (0=inactive, 1=active). Inactive projects are excluded from RAG queries." }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Project updated successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Project not found"
+          },
+          "500": {
+            "description": "Server error updating project"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a RAG project and all its associated data sources",
+        "description": "Soft-deletes a project, marking it as deleted without removing underlying data. The project and all connected databases, tables, and APIs are hidden from future queries but data is preserved for audit purposes.",
+        "operationId": "deleteProject",
+        "tags": ["Projects - Delete"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The unique identifier of the project to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Project deleted successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Project not found"
+          },
+          "500": {
+            "description": "Server error deleting project"
+          }
+        }
+      }
+    },
+    "/databases": {
+      "post": {
+        "summary": "Connect a new database to a RAG project",
+        "description": "Registers a database connection within a project. The connection string is securely stored in AWS Secrets Manager with only a reference ID stored in the database. Supports PostgreSQL, MySQL, MongoDB, and other database types.",
+        "operationId": "createDatabase",
+        "tags": ["Databases - Create & Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID this database belongs to"
+                  },
+                  "dbType": {
+                    "type": "string",
+                    "description": "Database type identifier (e.g., 'postgresql', 'mysql', 'mongodb'). Determines the SQL dialect and query syntax used by LLM agents.",
+                    "example": "postgresql"
+                  },
+                  "connectionString": {
+                    "type": "string",
+                    "description": "Complete database connection string with credentials. This is securely encrypted and stored in AWS Secrets Manager. Never logged or exposed in responses.",
+                    "example": "postgresql://user:password@db.example.com:5432/mydb"
+                  }
+                },
+                "required": ["projectId", "dbType", "connectionString"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Database connection created and secret stored successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error or AWS Secrets Manager unavailable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/databases": {
+      "get": {
+        "summary": "List all database connections in a project",
+        "description": "Retrieves all database connections configured for a project. Connection strings are not returned for security reasons; only metadata and secret references are shown.",
+        "operationId": "getDatabases",
+        "tags": ["Databases - Create & Configure"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The project ID to retrieve databases for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of database connections",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "Database connection ID" },
+                      "projectId": { "type": "integer", "description": "Parent project ID" },
+                      "dbType": { "type": "string", "description": "Database type (postgresql, mysql, etc.)" },
+                      "secretId": { "type": "string", "description": "Reference to AWS Secrets Manager secret" },
+                      "status": { "type": "integer", "description": "Connection status (0=inactive, 1=active)" },
+                      "createdAt": { "type": "string", "format": "date-time", "description": "When this connection was registered" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving databases"
+          }
+        }
+      }
+    },
+    "/databases/{databaseId}": {
+      "put": {
+        "summary": "Update database connection settings and credentials",
+        "description": "Modifies database configuration including type and credentials. Connection string updates are securely stored in AWS Secrets Manager, keeping the secret reference unchanged.",
+        "operationId": "updateDatabase",
+        "tags": ["Databases - Update & Delete"],
+        "parameters": [
+          {
+            "name": "databaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The database connection ID to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "dbType": { "type": "string", "description": "Updated database type" },
+                  "connectionString": { "type": "string", "description": "Updated connection string (only provided if credentials changed). Optional - omit to keep existing credentials." },
+                  "status": { "type": "integer", "description": "Update connection status (0=inactive, 1=active)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Database connection updated successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Database connection not found"
+          },
+          "500": {
+            "description": "Server error updating database"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a database connection from a project",
+        "description": "Soft-deletes a database connection, removing it from active RAG queries while preserving historical data. The connection is marked as deleted but data remains in the system.",
+        "operationId": "deleteDatabase",
+        "tags": ["Databases - Update & Delete"],
+        "parameters": [
+          {
+            "name": "databaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The database connection ID to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Database connection deleted successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Database connection not found"
+          },
+          "500": {
+            "description": "Server error deleting database"
+          }
+        }
+      }
+    },
+    "/tables": {
+      "post": {
+        "summary": "Document a database table for RAG indexing and retrieval",
+        "description": "Registers a table from a connected database for inclusion in RAG (Retrieval-Augmented Generation) operations. LLM agents use this information to understand available tables and construct appropriate SQL queries. The description should clearly explain the table's purpose and content.",
+        "operationId": "createTable",
+        "tags": ["Tables - Create & Document"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "databaseId": {
+                    "type": "integer",
+                    "description": "The database connection ID this table belongs to"
+                  },
+                  "tableName": {
+                    "type": "string",
+                    "description": "Exact table name as it appears in the database (case-sensitive)",
+                    "example": "customers"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Detailed description of the table's purpose, contents, and important columns. This is used by LLM agents to understand the table structure and decide when to query it.",
+                    "example": "Main customer records table containing user profiles, contact information, and subscription details. Key columns: id (primary key), email (unique), name, phone, created_at."
+                  }
+                },
+                "required": ["databaseId", "tableName"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Table documented and added to RAG system successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error documenting table"
+          }
+        }
+      }
+    },
+    "/databases/{databaseId}/tables": {
+      "get": {
+        "summary": "List all documented tables in a database",
+        "description": "Retrieves all tables registered for RAG retrieval within a specific database. Shows table names, descriptions, and configurations that LLM agents use for query generation.",
+        "operationId": "getTables",
+        "tags": ["Tables - Query & List"],
+        "parameters": [
+          {
+            "name": "databaseId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The database connection ID to list tables from"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of documented tables",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "Table registry ID" },
+                      "databaseId": { "type": "integer", "description": "Parent database ID" },
+                      "tableName": { "type": "string", "description": "Actual table name in database" },
+                      "description": { "type": "string", "description": "Table purpose and structure documentation" },
+                      "status": { "type": "integer", "description": "Status (0=inactive, 1=active for RAG)" },
+                      "createdAt": { "type": "string", "format": "date-time", "description": "When table was documented" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving tables"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/tables": {
+      "get": {
+        "summary": "Retrieve all tables across all databases in a project",
+        "description": "Lists every documented table within a project regardless of which database they belong to. Useful for understanding the complete data landscape available for RAG queries within a project.",
+        "operationId": "getTablesByProject",
+        "tags": ["Tables - Query & List"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The project ID to retrieve all tables from"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved all project tables with database information",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "Table registry ID" },
+                      "databaseId": { "type": "integer", "description": "Which database contains this table" },
+                      "tableName": { "type": "string", "description": "Table name in database" },
+                      "description": { "type": "string", "description": "Table documentation" },
+                      "dbType": { "type": "string", "description": "Database type (postgresql, mysql, etc.)" },
+                      "status": { "type": "integer", "description": "Active status for RAG" },
+                      "createdAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving project tables"
+          }
+        }
+      }
+    },
+    "/tables/{tableId}": {
+      "put": {
+        "summary": "Update table documentation and configuration",
+        "description": "Modifies the table's metadata and description. Use this to keep table documentation synchronized with schema changes or to improve the description for better LLM understanding.",
+        "operationId": "updateTable",
+        "tags": ["Tables - Update & Delete"],
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The table registry ID to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tableName": { "type": "string", "description": "Updated table name if it was renamed in database" },
+                  "description": { "type": "string", "description": "Updated table documentation for LLM agents" },
+                  "status": { "type": "integer", "description": "Update status (0=inactive from RAG, 1=active for RAG)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table documentation updated successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Table not found"
+          },
+          "500": {
+            "description": "Server error updating table"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove a table from RAG indexing",
+        "description": "Soft-deletes a table from the RAG system, preventing it from being available for LLM agent queries while preserving the registration history.",
+        "operationId": "deleteTable",
+        "tags": ["Tables - Update & Delete"],
+        "parameters": [
+          {
+            "name": "tableId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The table registry ID to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Table removed from RAG system successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Table not found"
+          },
+          "500": {
+            "description": "Server error deleting table"
+          }
+        }
+      }
+    },
+    "/apis": {
+      "post": {
+        "summary": "Register an external API endpoint for RAG integration",
+        "description": "Adds an external API endpoint to a project for LLM agents to call. The API can be REST, GraphQL, or other formats. Requires authentication configuration via access tokens.",
+        "operationId": "createApi",
+        "tags": ["APIs - Create & Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID this API belongs to"
+                  },
+                  "apiEndpoint": {
+                    "type": "string",
+                    "description": "Complete API endpoint URL (include protocol, domain, path, and port if non-standard). Variable segments should be documented.",
+                    "example": "https://api.example.com/v1/customers/{id}"
+                  },
+                  "apiMethod": {
+                    "type": "string",
+                    "description": "HTTP method for the API call (GET, POST, PUT, DELETE, PATCH)",
+                    "example": "GET"
+                  }
+                },
+                "required": ["projectId", "apiEndpoint", "apiMethod"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "API endpoint registered successfully for RAG access"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error registering API"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/apis": {
+      "get": {
+        "summary": "List all external APIs registered in a project",
+        "description": "Retrieves all API endpoints available for LLM agents to call within a project. Includes endpoint URLs, HTTP methods, and registration metadata.",
+        "operationId": "getApis",
+        "tags": ["APIs - Query & List"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The project ID to retrieve APIs from"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of registered APIs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "API registry ID" },
+                      "projectId": { "type": "integer", "description": "Parent project ID" },
+                      "apiEndpoint": { "type": "string", "description": "Full API endpoint URL" },
+                      "apiMethod": { "type": "string", "description": "HTTP method (GET, POST, etc.)" },
+                      "status": { "type": "integer", "description": "Status (0=inactive, 1=active for LLM calls)" },
+                      "createdAt": { "type": "string", "format": "date-time", "description": "When API was registered" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving APIs"
+          }
+        }
+      }
+    },
+    "/apis/{apiId}": {
+      "put": {
+        "summary": "Update external API endpoint configuration",
+        "description": "Modifies API endpoint details including URL and HTTP method. Use when API providers change their endpoints or when updating method capabilities.",
+        "operationId": "updateApi",
+        "tags": ["APIs - Update & Delete"],
+        "parameters": [
+          {
+            "name": "apiId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The API registry ID to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiEndpoint": { "type": "string", "description": "Updated API endpoint URL" },
+                  "apiMethod": { "type": "string", "description": "Updated HTTP method" },
+                  "status": { "type": "integer", "description": "Update status (0=disabled from LLM use, 1=enabled for LLM calls)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API endpoint updated successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "API not found"
+          },
+          "500": {
+            "description": "Server error updating API"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove an API endpoint from project integration",
+        "description": "Soft-deletes an API endpoint, preventing LLM agents from calling it while preserving the registration history.",
+        "operationId": "deleteApi",
+        "tags": ["APIs - Update & Delete"],
+        "parameters": [
+          {
+            "name": "apiId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The API registry ID to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "API endpoint removed successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "API not found"
+          },
+          "500": {
+            "description": "Server error deleting API"
+          }
+        }
+      }
+    },
+    "/access-tokens": {
+      "post": {
+        "summary": "Configure authentication credentials for API calls",
+        "description": "Creates authentication configuration for external API calls made by LLM agents. Specifies where credentials come from (cookies/localStorage) and how they should be included in API request headers. Token values are securely stored in AWS Secrets Manager.",
+        "operationId": "createAccessToken",
+        "tags": ["Authentication - Create & Configure"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID this authentication applies to"
+                  },
+                  "sourceType": {
+                    "type": "integer",
+                    "description": "Where the credential is stored on client side: 1=cookie, 2=localStorage. Determines how the system retrieves the token.",
+                    "example": 1
+                  },
+                  "sourceKey": {
+                    "type": "string",
+                    "description": "Key name to look up the credential in the source (cookie name or localStorage key)",
+                    "example": "auth_token"
+                  },
+                  "tokenValue": {
+                    "type": "string",
+                    "description": "The actual credential/token value. Stored securely in AWS Secrets Manager, never returned in API responses.",
+                    "example": "Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  },
+                  "headerKey": {
+                    "type": "string",
+                    "description": "HTTP header name where the token should be placed in API requests",
+                    "example": "Authorization"
+                  },
+                  "headerValueTemplate": {
+                    "type": "string",
+                    "description": "Template for formatting the header value. Use {token} as placeholder for the actual token value.",
+                    "example": "Bearer {token}"
+                  }
+                },
+                "required": ["projectId", "sourceType", "sourceKey", "tokenValue"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Authentication configuration created and token stored securely"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error or AWS Secrets Manager unavailable"
+          }
+        }
+      }
+    },
+    "/projects/{projectId}/access-tokens": {
+      "get": {
+        "summary": "List all authentication configurations for a project",
+        "description": "Retrieves all authentication setups configured for a project. Shows how credentials are sourced and formatted for API calls. Actual token values are not returned for security.",
+        "operationId": "getAccessTokens",
+        "tags": ["Authentication - Query & List"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The project ID to retrieve authentication configurations for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved list of authentication configurations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "Authentication config ID" },
+                      "projectId": { "type": "integer", "description": "Parent project ID" },
+                      "sourceType": { "type": "integer", "description": "Credential source (1=cookie, 2=localStorage)" },
+                      "sourceKey": { "type": "string", "description": "Key name in the source" },
+                      "headerKey": { "type": "string", "description": "HTTP header for the credential" },
+                      "status": { "type": "integer", "description": "Status (0=inactive, 1=active for API calls)" },
+                      "createdAt": { "type": "string", "format": "date-time", "description": "When config was created" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving authentication configs"
+          }
+        }
+      }
+    },
+    "/access-tokens/{tokenId}": {
+      "put": {
+        "summary": "Update authentication configuration and credentials",
+        "description": "Modifies authentication setup including credential source, header format, and token value. Token updates are securely stored in AWS Secrets Manager.",
+        "operationId": "updateAccessToken",
+        "tags": ["Authentication - Update & Delete"],
+        "parameters": [
+          {
+            "name": "tokenId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The authentication configuration ID to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "sourceType": { "type": "integer", "description": "Update credential source location (1=cookie, 2=localStorage)" },
+                  "sourceKey": { "type": "string", "description": "Update key name in the source" },
+                  "tokenValue": { "type": "string", "description": "Update token/credential value (only if credentials changed). Optional - omit to keep existing token." },
+                  "headerKey": { "type": "string", "description": "Update HTTP header name" },
+                  "headerValueTemplate": { "type": "string", "description": "Update header value template with {token} placeholder" },
+                  "status": { "type": "integer", "description": "Update status (0=disabled, 1=enabled for API calls)" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication configuration updated successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Authentication configuration not found"
+          },
+          "500": {
+            "description": "Server error updating authentication"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Remove an authentication configuration",
+        "description": "Soft-deletes an authentication setup, preventing LLM agents from using this credential configuration while preserving the history.",
+        "operationId": "deleteAccessToken",
+        "tags": ["Authentication - Update & Delete"],
+        "parameters": [
+          {
+            "name": "tokenId",
+            "in": "path",
+            "required": true,
+            "schema": {
+              "type": "integer"
+            },
+            "description": "The authentication configuration ID to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Authentication configuration removed successfully"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Authentication configuration not found"
+          },
+          "500": {
+            "description": "Server error deleting authentication"
+          }
+        }
+      }
+    },
+    "/kb/upload-openapi": {
+      "post": {
+        "summary": "Upload and parse OpenAPI document into draft API endpoints",
+        "description": "Accepts an OpenAPI 3.x or Swagger 2.x document and automatically parses all API endpoints into the Knowledge Base as draft APIs. The system extracts endpoint paths, HTTP methods, descriptions, parameters, request/response schemas, and tags. For endpoints missing descriptions or tags, the system uses AI to generate them automatically. The upload is processed asynchronously with real-time progress updates sent via WebSocket. This enables rapid documentation import for large API specifications.",
+        "operationId": "uploadOpenApi",
+        "tags": ["Knowledge Base - Upload & Import"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID to associate these APIs with. If 0 or not provided, uses the user's most recent project or creates a default project.",
+                    "example": 1
+                  },
+                  "openapi": {
+                    "type": "object",
+                    "description": "Complete OpenAPI 3.x or Swagger 2.x specification object. Must contain 'openapi' or 'swagger' version field, 'info' object, and non-empty 'paths' object. All endpoint paths and methods will be imported as draft APIs.",
+                    "example": {
+                      "openapi": "3.0.0",
+                      "info": { "title": "My API", "version": "1.0.0" },
+                      "paths": {
+                        "/users": {
+                          "get": {
+                            "summary": "List users",
+                            "tags": ["users"],
+                            "responses": { "200": { "description": "Success" } }
+                          }
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": ["openapi"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload started successfully. Processing happens asynchronously with WebSocket updates sent to user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "status": { "type": "string", "example": "processing" },
+                    "message": { "type": "string", "example": "OpenAPI upload started. Updates will be sent via socket." }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid OpenAPI document structure (missing required fields or malformed)"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error during upload processing"
+          }
+        }
+      }
+    },
+    "/kb/upload-sql": {
+      "post": {
+        "summary": "Upload and parse SQL DDL statements into draft table definitions",
+        "description": "Accepts SQL Data Definition Language (DDL) text containing CREATE TABLE statements and automatically parses all table schemas into the Knowledge Base as draft tables. The parser extracts table names, column definitions (name, type, nullable), primary keys, foreign keys, and relationships. For tables missing descriptions or tags, the system uses AI to generate them automatically based on the schema structure. The upload is processed asynchronously with real-time progress updates sent via WebSocket. Supports PostgreSQL DDL syntax including IF NOT EXISTS, inline constraints, and table-level constraints.",
+        "operationId": "uploadSqlDdl",
+        "tags": ["Knowledge Base - Upload & Import"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID to associate these tables with. If 0 or not provided, uses the user's most recent project or creates a default project.",
+                    "example": 1
+                  },
+                  "databaseId": {
+                    "type": "integer",
+                    "description": "The database connection ID these tables belong to. Optional - can be set later when connecting tables to specific databases.",
+                    "example": 5
+                  },
+                  "ddlText": {
+                    "type": "string",
+                    "description": "SQL DDL text containing one or more CREATE TABLE statements. Must be valid PostgreSQL syntax. The parser will extract all CREATE TABLE statements and ignore other SQL commands.",
+                    "example": "CREATE TABLE users (id SERIAL PRIMARY KEY, email VARCHAR(255) NOT NULL UNIQUE, created_at TIMESTAMP DEFAULT NOW());\nCREATE TABLE orders (id SERIAL PRIMARY KEY, user_id INTEGER REFERENCES users(id), total DECIMAL(10,2), created_at TIMESTAMP);"
+                  }
+                },
+                "required": ["ddlText"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Upload started successfully. Processing happens asynchronously with WebSocket updates sent to user.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "status": { "type": "string", "example": "processing" },
+                    "message": { "type": "string", "example": "SQL DDL upload started. Updates will be sent via socket." }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No CREATE TABLE statements found in DDL text"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error during SQL parsing"
+          }
+        }
+      }
+    },
+    "/kb/apis": {
+      "post": {
+        "summary": "Manually create a new draft API endpoint in the Knowledge Base",
+        "description": "Creates a new draft API endpoint entry in the Knowledge Base system. Draft APIs can be edited, tested, and refined before being promoted to active status for RAG operations. This is useful for manually adding APIs that aren't in an OpenAPI specification or for creating custom API documentation. The API remains in 'editing' submission status until explicitly submitted.",
+        "operationId": "createKbApi",
+        "tags": ["Knowledge Base - APIs Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiPath": {
+                    "type": "string",
+                    "description": "The API endpoint path (e.g., '/users/{id}', '/api/v1/products'). Can include path parameters in curly braces.",
+                    "example": "/api/users/{userId}"
+                  },
+                  "apiMethod": {
+                    "type": "string",
+                    "description": "HTTP method for this endpoint (GET, POST, PUT, DELETE, PATCH, etc.)",
+                    "example": "GET"
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Human-readable description of what this API endpoint does. Used by LLM agents to understand when to call this API.",
+                    "example": "Retrieves detailed information about a specific user by their unique ID"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Categorization tags for this API (e.g., 'users', 'authentication', 'admin'). Helps organize and filter APIs.",
+                    "example": ["users", "read"]
+                  },
+                  "openapiOperation": {
+                    "type": "object",
+                    "description": "Complete OpenAPI operation object containing parameters, requestBody, responses, etc. This provides full API specification details for LLM agents.",
+                    "example": {
+                      "summary": "Get user by ID",
+                      "parameters": [{ "name": "userId", "in": "path", "required": true, "schema": { "type": "integer" } }],
+                      "responses": { "200": { "description": "User found", "content": { "application/json": { "schema": { "type": "object" } } } } }
+                    }
+                  }
+                },
+                "required": ["apiPath", "apiMethod"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft API created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer", "description": "Unique ID of the created draft API" },
+                    "projectId": { "type": "integer", "description": "Associated project ID" },
+                    "apiPath": { "type": "string", "description": "The API endpoint path" },
+                    "apiMethod": { "type": "string", "description": "HTTP method" },
+                    "description": { "type": "string", "description": "API description" },
+                    "tags": { "type": "array", "items": { "type": "string" }, "description": "Tags" },
+                    "kbVersion": { "type": "string", "enum": ["draft"], "description": "Always 'draft' for newly created APIs" },
+                    "submissionStatus": { "type": "string", "enum": ["editing"], "description": "Current status in the workflow" },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error creating draft API"
+          }
+        }
+      }
+    },
+    "/kb/apis/{id}": {
+      "get": {
+        "summary": "Retrieve a single draft API endpoint by ID",
+        "description": "Fetches complete details of a specific draft API endpoint from the Knowledge Base, including its path, method, description, tags, and full OpenAPI operation specification. Use this to review or edit a draft API before submission.",
+        "operationId": "getKbApi",
+        "tags": ["Knowledge Base - APIs Management"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The unique ID of the draft API to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft API retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "projectId": { "type": "integer" },
+                    "apiPath": { "type": "string" },
+                    "apiMethod": { "type": "string" },
+                    "description": { "type": "string" },
+                    "tags": { "type": "array", "items": { "type": "string" } },
+                    "kbVersion": { "type": "string", "enum": ["draft"] },
+                    "openapiOperation": { "type": "object", "description": "Full OpenAPI operation object" },
+                    "submissionStatus": { "type": "string" },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Draft API not found"
+          },
+          "500": {
+            "description": "Server error retrieving draft API"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a draft API endpoint's details",
+        "description": "Modifies an existing draft API endpoint in the Knowledge Base. You can update any field including path, method, description, tags, and the full OpenAPI operation specification. Changes are only applied to draft versions and won't affect active APIs until promoted. System-protected fields like kbVersion and readyForRag cannot be modified directly.",
+        "operationId": "updateKbApi",
+        "tags": ["Knowledge Base - APIs Management"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The unique ID of the draft API to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "apiPath": { "type": "string", "description": "Updated API endpoint path" },
+                  "apiMethod": { "type": "string", "description": "Updated HTTP method" },
+                  "description": { "type": "string", "description": "Updated description" },
+                  "tags": { "type": "array", "items": { "type": "string" }, "description": "Updated tags array" },
+                  "openapiOperation": { "type": "object", "description": "Updated OpenAPI operation object" }
+                },
+                "description": "Provide only the fields you want to update. Omitted fields will remain unchanged."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft API updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "apiPath": { "type": "string" },
+                    "apiMethod": { "type": "string" },
+                    "description": { "type": "string" },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid fields to update or invalid update attempt"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Draft API not found"
+          },
+          "500": {
+            "description": "Server error updating draft API"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a draft API endpoint from the Knowledge Base",
+        "description": "Soft-deletes a draft API endpoint by marking it as deleted and appending a deletion timestamp to its path. Only the creator of the API can delete it, and only draft versions can be deleted (active APIs must be managed through the promote/discard workflow). The API is hidden from all lists but preserved in the database for audit purposes.",
+        "operationId": "deleteKbApi",
+        "tags": ["Knowledge Base - APIs Management"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The unique ID of the draft API to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft API deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer", "description": "ID of the deleted API" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed or not authorized to delete this API"
+          },
+          "404": {
+            "description": "Draft API not found"
+          },
+          "500": {
+            "description": "Server error deleting draft API"
+          }
+        }
+      }
+    },
+    "/kb/draft/apis": {
+      "get": {
+        "summary": "List all draft API endpoints for a project",
+        "description": "Retrieves all draft API endpoints in the Knowledge Base for a specific project. Draft APIs are in the editing or submitted state, not yet promoted to active status. Use this to review, manage, and bulk-process draft APIs before making them available for RAG operations. Results are ordered by creation date (most recent first).",
+        "operationId": "listDraftApis",
+        "tags": ["Knowledge Base - APIs Management"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "The project ID to list APIs from. If 0 or omitted, uses the user's most recent project."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft APIs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "projectId": { "type": "integer" },
+                      "apiPath": { "type": "string" },
+                      "apiMethod": { "type": "string" },
+                      "description": { "type": "string" },
+                      "tags": { "type": "array", "items": { "type": "string" } },
+                      "kbVersion": { "type": "string", "enum": ["draft"] },
+                      "submissionStatus": { "type": "string", "description": "'editing' or 'submitted'" },
+                      "createdAt": { "type": "string", "format": "date-time" },
+                      "updatedAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving draft APIs"
+          }
+        }
+      }
+    },
+    "/kb/active/apis": {
+      "get": {
+        "summary": "List all active API endpoints for a project",
+        "description": "Retrieves all active (production-ready) API endpoints in the Knowledge Base for a specific project. Active APIs have been promoted from draft status and are marked as ready for RAG operations, meaning LLM agents can discover and call these APIs during query processing. Use this to see which APIs are currently available for autonomous agent use. Results are ordered by creation date (most recent first).",
+        "operationId": "listActiveApis",
+        "tags": ["Knowledge Base - APIs Management"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "The project ID to list APIs from. If 0 or omitted, uses the user's most recent project."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active APIs retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "projectId": { "type": "integer" },
+                      "apiPath": { "type": "string" },
+                      "apiMethod": { "type": "string" },
+                      "description": { "type": "string" },
+                      "tags": { "type": "array", "items": { "type": "string" } },
+                      "kbVersion": { "type": "string", "enum": ["active"] },
+                      "readyForRag": { "type": "boolean", "description": "Always true for active APIs" },
+                      "submissionStatus": { "type": "string" },
+                      "createdAt": { "type": "string", "format": "date-time" },
+                      "updatedAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving active APIs"
+          }
+        }
+      }
+    },
+    "/kb/tables": {
+      "post": {
+        "summary": "Manually create a new draft table in the Knowledge Base",
+        "description": "Creates a new draft table entry in the Knowledge Base system. Draft tables can be edited, refined, and have AI-generated descriptions added before being promoted to active status for RAG operations. This is useful for manually documenting database tables or creating table definitions without uploading SQL DDL. The table remains in 'editing' submission status until explicitly submitted.",
+        "operationId": "createKbTable",
+        "tags": ["Knowledge Base - Tables Management"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tableName": {
+                    "type": "string",
+                    "description": "The database table name (case-sensitive, must match actual database table name)",
+                    "example": "users"
+                  },
+                  "databaseId": {
+                    "type": "integer",
+                    "description": "The database connection ID this table belongs to. Optional - can be set later.",
+                    "example": 5
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Human-readable description of the table's purpose and contents. Used by LLM agents for query planning.",
+                    "example": "Stores user account information including authentication credentials, profile data, and account settings"
+                  },
+                  "tags": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Categorization tags for this table (e.g., 'users', 'authentication', 'core')",
+                    "example": ["users", "authentication"]
+                  },
+                  "keys": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "name": { "type": "string", "description": "Column name" },
+                        "type": { "type": "string", "description": "Column data type (e.g., 'INTEGER', 'VARCHAR(255)', 'TIMESTAMP')" },
+                        "category": { "type": "string", "enum": ["Primary Key", "Foreign Key", "Others"], "description": "Column category" },
+                        "nullable": { "type": "boolean", "description": "Whether column accepts NULL values" }
+                      }
+                    },
+                    "description": "Array of column definitions"
+                  },
+                  "pkColumns": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "List of primary key column names",
+                    "example": ["id"]
+                  },
+                  "fkRelations": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "column": { "type": "string", "description": "Foreign key column name" },
+                        "refTable": { "type": "string", "description": "Referenced table name" },
+                        "refColumn": { "type": "string", "description": "Referenced column name" }
+                      }
+                    },
+                    "description": "Array of foreign key relationships"
+                  },
+                  "schemaSource": {
+                    "type": "string",
+                    "enum": ["manual", "ddl", "introspection"],
+                    "description": "How the schema was obtained",
+                    "example": "manual"
+                  }
+                },
+                "required": ["tableName"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Draft table created successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer", "description": "Unique ID of the created draft table" },
+                    "projectId": { "type": "integer" },
+                    "tableName": { "type": "string" },
+                    "databaseId": { "type": "integer" },
+                    "description": { "type": "string" },
+                    "tags": { "type": "array", "items": { "type": "string" } },
+                    "kbVersion": { "type": "string", "enum": ["draft"] },
+                    "submissionStatus": { "type": "string", "enum": ["editing"] },
+                    "createdAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request - tableName is required"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error creating draft table"
+          }
+        }
+      }
+    },
+    "/kb/tables/{id}": {
+      "get": {
+        "summary": "Retrieve a single draft table by ID",
+        "description": "Fetches complete details of a specific draft table from the Knowledge Base, including its schema definition, columns, primary keys, foreign keys, and any AI-generated descriptions. Use this to review or edit a draft table before submission.",
+        "operationId": "getKbTable",
+        "tags": ["Knowledge Base - Tables Management"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The unique ID of the draft table to retrieve"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft table retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "projectId": { "type": "integer" },
+                    "databaseId": { "type": "integer" },
+                    "tableName": { "type": "string" },
+                    "description": { "type": "string" },
+                    "tags": { "type": "array", "items": { "type": "string" } },
+                    "kbVersion": { "type": "string", "enum": ["draft"] },
+                    "schemaJson": { "type": "object", "description": "Complete schema definition with columns array" },
+                    "pkColumns": { "type": "array", "items": { "type": "string" }, "description": "Primary key columns" },
+                    "fkRelations": { "type": "array", "description": "Foreign key relationships" },
+                    "generatedTxt": { "type": "string", "description": "AI-generated description (if generated)" },
+                    "generationStatus": { "type": "string", "description": "Status of AI generation (null, 'generating', or 'generated')" },
+                    "submissionStatus": { "type": "string" },
+                    "createdAt": { "type": "string", "format": "date-time" },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Draft table not found"
+          },
+          "500": {
+            "description": "Server error retrieving draft table"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update a draft table's schema and metadata",
+        "description": "Modifies an existing draft table in the Knowledge Base. You can update any field including table name, description, tags, column definitions, primary keys, and foreign key relationships. The 'keys' field (columns array) is merged into schemaJson.columns automatically. Changes are only applied to draft versions and won't affect active tables until promoted.",
+        "operationId": "updateKbTable",
+        "tags": ["Knowledge Base - Tables Management"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The unique ID of the draft table to update"
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "tableName": { "type": "string", "description": "Updated table name" },
+                  "description": { "type": "string", "description": "Updated description" },
+                  "tags": { "type": "array", "items": { "type": "string" }, "description": "Updated tags" },
+                  "keys": { "type": "array", "description": "Updated columns array (merged into schemaJson.columns)" },
+                  "pkColumns": { "type": "array", "items": { "type": "string" }, "description": "Updated primary key columns" },
+                  "fkRelations": { "type": "array", "description": "Updated foreign key relationships" }
+                },
+                "description": "Provide only the fields you want to update. Omitted fields remain unchanged."
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft table updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "tableName": { "type": "string" },
+                    "description": { "type": "string" },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "No valid fields to update"
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Draft table not found"
+          },
+          "500": {
+            "description": "Server error updating draft table"
+          }
+        }
+      },
+      "delete": {
+        "summary": "Delete a draft table from the Knowledge Base",
+        "description": "Soft-deletes a draft table by marking it as deleted and appending a deletion timestamp to its name. Only the creator of the table can delete it, and only draft versions can be deleted (active tables must be managed through the promote/discard workflow). The table is hidden from all lists but preserved in the database for audit purposes.",
+        "operationId": "deleteKbTable",
+        "tags": ["Knowledge Base - Tables Management"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The unique ID of the draft table to delete"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft table deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer", "description": "ID of the deleted table" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed or not authorized to delete this table"
+          },
+          "404": {
+            "description": "Draft table not found"
+          },
+          "500": {
+            "description": "Server error deleting draft table"
+          }
+        }
+      }
+    },
+    "/kb/tables/{id}/generate": {
+      "post": {
+        "summary": "Generate AI-powered description for a draft table",
+        "description": "Uses AI (Claude) to analyze a table's schema and automatically generate a comprehensive, human-readable description. The AI examines column names, data types, primary keys, foreign key relationships, and table structure to create documentation that helps LLM agents understand the table's purpose and when to query it. The generated text is stored in the 'generatedTxt' field and the generation status is marked as 'generated'. Useful for quickly documenting tables with minimal manual effort.",
+        "operationId": "generateKbTableDescription",
+        "tags": ["Knowledge Base - Tables Management"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The unique ID of the draft table to generate description for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Table description generated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "tableName": { "type": "string" },
+                    "generatedTxt": { "type": "string", "description": "The AI-generated description" },
+                    "generationStatus": { "type": "string", "enum": ["generated"] },
+                    "updatedAt": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "404": {
+            "description": "Draft table not found"
+          },
+          "500": {
+            "description": "Server error or AI generation failed"
+          }
+        }
+      }
+    },
+    "/kb/draft/tables": {
+      "get": {
+        "summary": "List all draft tables for a project",
+        "description": "Retrieves all draft tables in the Knowledge Base for a specific project. Draft tables are in the editing or submitted state, not yet promoted to active status. Use this to review, manage, and bulk-process draft tables before making them available for RAG SQL generation. Results are ordered by creation date (most recent first).",
+        "operationId": "listDraftTables",
+        "tags": ["Knowledge Base - Tables Management"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "The project ID to list tables from. If 0 or omitted, uses the user's most recent project."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft tables retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "projectId": { "type": "integer" },
+                      "databaseId": { "type": "integer" },
+                      "tableName": { "type": "string" },
+                      "description": { "type": "string" },
+                      "tags": { "type": "array", "items": { "type": "string" } },
+                      "kbVersion": { "type": "string", "enum": ["draft"] },
+                      "generationStatus": { "type": "string" },
+                      "submissionStatus": { "type": "string", "description": "'editing' or 'submitted'" },
+                      "createdAt": { "type": "string", "format": "date-time" },
+                      "updatedAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving draft tables"
+          }
+        }
+      }
+    },
+    "/kb/active/tables": {
+      "get": {
+        "summary": "List all active tables for a project",
+        "description": "Retrieves all active (production-ready) tables in the Knowledge Base for a specific project. Active tables have been promoted from draft status and are marked as ready for RAG operations, meaning LLM agents can use these table schemas for SQL query generation during natural language query processing. Use this to see which tables are currently available for autonomous SQL generation. Results are ordered by creation date (most recent first).",
+        "operationId": "listActiveTables",
+        "tags": ["Knowledge Base - Tables Management"],
+        "parameters": [
+          {
+            "name": "projectId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" },
+            "description": "The project ID to list tables from. If 0 or omitted, uses the user's most recent project."
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Active tables retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "projectId": { "type": "integer" },
+                      "databaseId": { "type": "integer" },
+                      "tableName": { "type": "string" },
+                      "description": { "type": "string" },
+                      "tags": { "type": "array", "items": { "type": "string" } },
+                      "kbVersion": { "type": "string", "enum": ["active"] },
+                      "readyForRag": { "type": "boolean", "description": "Always true for active tables" },
+                      "generatedTxt": { "type": "string", "description": "AI-generated description" },
+                      "submissionStatus": { "type": "string" },
+                      "createdAt": { "type": "string", "format": "date-time" },
+                      "updatedAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error retrieving active tables"
+          }
+        }
+      }
+    },
+    "/kb/submit": {
+      "post": {
+        "summary": "Submit all draft Knowledge Base content for review",
+        "description": "Marks all draft APIs and draft tables in a project as 'submitted', transitioning them from 'editing' status to 'submitted' status in the Knowledge Base workflow. This indicates that the draft content is ready for review and eventual promotion to active status. This is a lightweight operation that only updates status flags - it does not build RAG files or promote to active. Use this when you've finished editing draft content and want to signal it's ready for the next workflow stage.",
+        "operationId": "submitKb",
+        "tags": ["Knowledge Base - Workflow & Operations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID containing the draft content to submit. If 0 or not provided, uses the user's most recent project.",
+                    "example": 1
+                  }
+                },
+                "required": ["projectId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft content submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error submitting draft content"
+          }
+        }
+      }
+    },
+    "/kb/submit/api": {
+      "post": {
+        "summary": "Build RAG (Retrieval-Augmented Generation) files for API endpoints",
+        "description": "Processes all draft API endpoints in a project and builds RAG vector embeddings and documentation files that enable LLM agents to discover and call these APIs during query processing. This is a computationally intensive operation that runs asynchronously with real-time progress updates sent via WebSocket. The process generates vector embeddings from API descriptions, parameters, request/response schemas, and tags, then stores them in a format optimized for semantic search and retrieval. Use this after finalizing your API documentation and before promoting to active status.",
+        "operationId": "submitKbApi",
+        "tags": ["Knowledge Base - Workflow & Operations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID containing the APIs to process. If 0 or not provided, uses the user's most recent project.",
+                    "example": 1
+                  }
+                },
+                "required": ["projectId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API RAG build started successfully. Processing happens asynchronously with WebSocket updates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "status": { "type": "string", "example": "processing" },
+                    "message": { "type": "string", "example": "API RAG build started. Updates will be sent via socket." }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error starting API RAG build"
+          }
+        }
+      }
+    },
+    "/kb/submit/table": {
+      "post": {
+        "summary": "Build RAG (Retrieval-Augmented Generation) files for database tables",
+        "description": "Processes all draft table schemas in a project and builds RAG vector embeddings and documentation files that enable LLM agents to understand database structure and generate appropriate SQL queries during natural language query processing. This is a computationally intensive operation that runs asynchronously with real-time progress updates sent via WebSocket. The process generates vector embeddings from table names, column definitions, descriptions, relationships, and AI-generated documentation, then stores them in a format optimized for SQL generation context. Use this after finalizing your table documentation and before promoting to active status.",
+        "operationId": "submitKbTable",
+        "tags": ["Knowledge Base - Workflow & Operations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID containing the tables to process. If 0 or not provided, uses the user's most recent project.",
+                    "example": 1
+                  }
+                },
+                "required": ["projectId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Table RAG build started successfully. Processing happens asynchronously with WebSocket updates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "status": { "type": "string", "example": "processing" },
+                    "message": { "type": "string", "example": "Table RAG build started. Updates will be sent via socket." }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error starting table RAG build"
+          }
+        }
+      }
+    },
+    "/kb/build-rag": {
+      "post": {
+        "summary": "Build complete RAG files combining all APIs and tables",
+        "description": "Orchestrates the complete RAG (Retrieval-Augmented Generation) build process for an entire project, combining both API endpoints and database table schemas into unified vector embeddings and documentation files. This comprehensive operation processes all active content, generates embeddings, creates searchable indexes, and updates the project's RAG file paths. The build runs asynchronously with real-time progress updates via WebSocket. This is the final step before LLM agents can use the Knowledge Base for autonomous query processing and API/SQL generation. Use this when both APIs and tables are ready and you want to create the complete RAG context for your project.",
+        "operationId": "buildRag",
+        "tags": ["Knowledge Base - Workflow & Operations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID to build RAG files for. If 0 or not provided, uses the user's most recent project.",
+                    "example": 1
+                  }
+                },
+                "required": ["projectId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "RAG build started successfully. Processing happens asynchronously with WebSocket updates.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "status": { "type": "string", "example": "processing" },
+                    "message": { "type": "string", "example": "RAG build started. Updates will be sent via socket." }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error starting RAG build"
+          }
+        }
+      }
+    },
+    "/kb/update-rag": {
+      "post": {
+        "summary": "Promote draft content to active (production) status",
+        "description": "Executes the promotion workflow that transitions draft APIs and tables to active status, making them available for production RAG operations. This operation performs a transactional update: (1) soft-deletes all existing active content for the project, (2) copies all draft APIs and tables to new active records with readyForRag=true, and (3) preserves draft versions unchanged. After promotion, active content is used by LLM agents for query processing while draft versions remain available for continued editing. This enables a safe staging-to-production workflow where you can test and refine content in draft before making it live. Use this after you've built RAG files and verified your draft content is correct.",
+        "operationId": "updateRag",
+        "tags": ["Knowledge Base - Workflow & Operations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID to promote content for. If 0 or not provided, uses the user's most recent project.",
+                    "example": 1
+                  }
+                },
+                "required": ["projectId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft content promoted to active successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error during promotion"
+          }
+        }
+      }
+    },
+    "/kb/discard-draft": {
+      "post": {
+        "summary": "Discard draft changes and reset from active content",
+        "description": "Reverts all draft changes by performing a complete reset of the draft workspace: (1) soft-deletes all current draft APIs and tables in the project, (2) copies all active APIs and tables back into draft versions with submissionStatus='editing' and readyForRag=false, effectively resetting the draft workspace to match the current production state. This is a transactional operation that provides a safe way to abandon experimental changes or incorrect edits without affecting production active content. Use this when you want to start over with a clean draft that matches the current active state, discarding any work-in-progress changes. WARNING: This permanently discards all current draft changes.",
+        "operationId": "discardDraft",
+        "tags": ["Knowledge Base - Workflow & Operations"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "projectId": {
+                    "type": "integer",
+                    "description": "The project ID to discard drafts for. If 0 or not provided, uses the user's most recent project.",
+                    "example": 1
+                  }
+                },
+                "required": ["projectId"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Draft content discarded and reset from active successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication failed"
+          },
+          "500": {
+            "description": "Server error during discard operation"
+          }
+        }
+      }
+    }
+  }
+}

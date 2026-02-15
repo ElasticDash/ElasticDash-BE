@@ -1,0 +1,165 @@
+version: 0.2
+
+env:
+  variables:
+    AWS_DEFAULT_REGION: ap-southeast-2
+    AWS_ACCOUNT_ID: 281584859358
+    ECR_REPOSITORY: elasticdash-api
+    ENVIRONMENT: dev
+    EKS_CLUSTER_NAME: beautiful-indie-ant
+    KUBECTL_VERSION: v1.29.7
+    KUSTOMIZE_VERSION: v5.4.1
+
+phases:
+  install:
+    commands:
+      - echo Installing kubectl $KUBECTL_VERSION...
+      - curl -LO "https://dl.k8s.io/release/$KUBECTL_VERSION/bin/linux/amd64/kubectl"
+      - chmod +x kubectl && mv kubectl /usr/local/bin/
+      - echo Installing kustomize $KUSTOMIZE_VERSION...
+      - curl -sL "https://github.com/kubernetes-sigs/kustomize/releases/download/kustomize%2F$KUSTOMIZE_VERSION/kustomize_${KUSTOMIZE_VERSION}_linux_amd64.tar.gz" | tar xz
+      - mv kustomize /usr/local/bin/
+
+  pre_build:
+    commands:
+      - echo Logging in to Amazon ECR...
+      - aws ecr get-login-password --region $AWS_DEFAULT_REGION | docker login --username AWS --password-stdin $AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com
+      - REPOSITORY_URI=$AWS_ACCOUNT_ID.dkr.ecr.$AWS_DEFAULT_REGION.amazonaws.com/$ECR_REPOSITORY
+      - COMMIT_HASH=$(echo $CODEBUILD_RESOLVED_SOURCE_VERSION | cut -c 1-7)
+      - |
+        # Debug: Print all relevant environment variables
+        echo "DEBUG: CODEBUILD_SOURCE_VERSION=$CODEBUILD_SOURCE_VERSION"
+        echo "DEBUG: CODEBUILD_WEBHOOK_HEAD_REF=$CODEBUILD_WEBHOOK_HEAD_REF"
+        echo "DEBUG: CODEBUILD_SOURCE_REPO_URL=$CODEBUILD_SOURCE_REPO_URL"
+        echo "DEBUG: CODEBUILD_RESOLVED_SOURCE_VERSION=$CODEBUILD_RESOLVED_SOURCE_VERSION"
+        
+        # Extract branch name and create image tag
+        if [ -n "$CODEBUILD_WEBHOOK_HEAD_REF" ]; then
+          # For webhook builds (prioritize this)
+          BRANCH_NAME=$(echo $CODEBUILD_WEBHOOK_HEAD_REF | sed 's/refs\/heads\///')
+          echo "Using WEBHOOK_HEAD_REF: $CODEBUILD_WEBHOOK_HEAD_REF"
+        elif [ -n "$CODEBUILD_SOURCE_VERSION" ]; then
+          # For CodePipeline builds
+          BRANCH_NAME=$(echo $CODEBUILD_SOURCE_VERSION | sed 's/refs\/heads\///')
+          if [ "$BRANCH_NAME" = "$CODEBUILD_SOURCE_VERSION" ]; then
+            # Fallback: try to get branch from Git
+            BRANCH_NAME=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+          fi
+          echo "Using SOURCE_VERSION: $CODEBUILD_SOURCE_VERSION"
+        else
+          # Ultimate fallback
+          BRANCH_NAME=$(git symbolic-ref --short HEAD 2>/dev/null || echo "unknown")
+          echo "Using git fallback"
+        fi
+        
+        # Clean branch name (replace / with -, remove special chars, lowercase)
+        BRANCH_NAME=$(echo $BRANCH_NAME | sed 's/\//-/g' | sed 's/[^a-zA-Z0-9-]//g' | tr '[:upper:]' '[:lower:]')
+        # Create image tag with dev- prefix
+        IMAGE_TAG="dev-${BRANCH_NAME}"
+        echo "Final detected branch: $BRANCH_NAME"
+        echo "Generated image tag: $IMAGE_TAG"
+      - echo Build started on `date`
+      - echo Building image $REPOSITORY_URI:$IMAGE_TAG
+      - |
+        # Verify .env file exists (now tracked in git)
+        echo "Verifying .env file..."
+        if [ ! -f .env ]; then
+          echo "ERROR: .env file not found in repository"
+          exit 1
+        fi
+        echo ".env file found successfully"
+        ls -la .env
+
+  build:
+    commands:
+      - echo Building the Docker image...
+      - cd docker
+      - |
+        # Build with retry mechanism for Docker Hub rate limiting
+        MAX_RETRIES=3
+        RETRY_COUNT=0
+        while [ $RETRY_COUNT -lt $MAX_RETRIES ]; do
+          echo "Build attempt $((RETRY_COUNT + 1)) of $MAX_RETRIES"
+          if docker build --platform linux/amd64 -f Dockerfile.cicd --build-arg NODE_ENV=$ENVIRONMENT --build-arg BUILD_ENV=$ENVIRONMENT -t $REPOSITORY_URI:$IMAGE_TAG ..; then
+            echo "Docker build successful!"
+            break
+          else
+            RETRY_COUNT=$((RETRY_COUNT + 1))
+            if [ $RETRY_COUNT -lt $MAX_RETRIES ]; then
+              echo "Build failed, retrying in 30 seconds..."
+              sleep 30
+            else
+              echo "Build failed after $MAX_RETRIES attempts"
+              exit 1
+            fi
+          fi
+        done
+      - docker tag $REPOSITORY_URI:$IMAGE_TAG $REPOSITORY_URI:build-$CODEBUILD_BUILD_NUMBER
+      - docker tag $REPOSITORY_URI:$IMAGE_TAG $REPOSITORY_URI:commit-$COMMIT_HASH
+
+  post_build:
+    commands:
+      - echo Pushing Docker images to ECR...
+      - docker push $REPOSITORY_URI:$IMAGE_TAG
+      - docker push $REPOSITORY_URI:build-$CODEBUILD_BUILD_NUMBER
+      - docker push $REPOSITORY_URI:commit-$COMMIT_HASH
+      - echo Build completed on `date`
+      - |
+        # Debug: Print identity and cluster info
+        echo "=== DEBUG: Identity and Cluster Info ==="
+        aws sts get-caller-identity
+        aws eks describe-cluster --name $EKS_CLUSTER_NAME --region $AWS_DEFAULT_REGION
+      - |
+        # Update kubeconfig for EKS
+        echo "=== Updating kubeconfig for EKS cluster ==="
+        aws eks update-kubeconfig --name $EKS_CLUSTER_NAME --region $AWS_DEFAULT_REGION
+        kubectl config view
+        kubectl version --client --output=yaml
+      - |
+        # Deploy to EKS
+        echo "=== Deploying to EKS ==="
+        # Go back to source root
+        cd $CODEBUILD_SRC_DIR
+        echo "DEBUG: Source directory: $CODEBUILD_SRC_DIR"
+        echo "DEBUG: Contents of source directory:"
+        ls -la
+        echo "DEBUG: Looking for k8s directory:"
+        find . -name "k8s" -type d
+        echo "DEBUG: Looking for kustomization files:"
+        find . -name "kustomization.yaml" -o -name "kustomization.yml"
+        
+        # Generate kustomization.yaml from template
+        echo "DEBUG: About to generate kustomization.yaml with IMAGE_TAG=$IMAGE_TAG"
+        echo "DEBUG: Running: ./k8s/generate-kustomization.sh $ENVIRONMENT $IMAGE_TAG"
+        AUTO_APPLY=false ./k8s/generate-kustomization.sh $ENVIRONMENT $IMAGE_TAG
+        
+        # Navigate to k8s environment
+        cd k8s/environments/$ENVIRONMENT
+        echo "DEBUG: Current directory: $(pwd)"
+        echo "DEBUG: Generated kustomization.yaml:"
+        cat kustomization.yaml
+        
+        # Apply to cluster
+        echo "Applying Kubernetes manifests..."
+        kubectl apply -k . --validate=false
+        # Force restart deployment to pull new image with same tag
+        echo "Forcing deployment restart to pull new image..."
+        kubectl rollout restart deployment/elasticdash-api -n dev-elasticdash
+        # Wait for rollout with shorter timeout and error handling
+        echo "Waiting for deployment rollout (max 120s)..."
+        if kubectl rollout status deployment/elasticdash-api -n dev-elasticdash --timeout=120s; then
+          echo "Deployment rollout completed successfully!"
+        else
+          echo "Deployment rollout timed out, but continuing..."
+          echo "Current pod status:"
+          kubectl get pods -n dev-elasticdash -l app=elasticdash-api
+        fi
+      - echo Deployment completed successfully
+
+artifacts:
+  files:
+    - 'README.md'
+
+cache:
+  paths:
+    - '/root/.docker/**/*'

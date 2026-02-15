@@ -1,0 +1,97 @@
+# CI/CD optimized Dockerfile for ElasticDash-API
+# This Dockerfile is specifically designed for automated builds where .env may not be available
+
+# Stage 1: Node.js dependencies
+FROM public.ecr.aws/docker/library/node:18-slim as node-builder
+
+WORKDIR /app
+
+# Install build dependencies for native modules
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    build-essential \
+    libpq-dev \
+    python3 \
+    make \
+    g++ \
+    && rm -rf /var/lib/apt/lists/*
+
+# Copy package files first for better layer caching
+COPY package*.json ./
+RUN npm install --no-audit --no-fund && \
+    npm cache clean --force
+
+# Stage 2: Final runtime image
+FROM public.ecr.aws/docker/library/node:18-slim
+
+# Define non-root user early with explicit paths
+ARG UID=1000
+ARG GID=1000
+ENV USER=elasticdash
+ENV HOME=/home/elasticdash
+
+# Install all system dependencies in one layer
+RUN apt-get update && apt-get install -y --no-install-recommends \
+    # Database and system libraries
+    libpq-dev \
+    # Image processing dependencies for canvas and jimp
+    libcairo2-dev \
+    libpango1.0-dev \
+    libjpeg-dev \
+    libgif-dev \
+    librsvg2-dev \
+    # GraphicsMagick dependencies
+    libgraphicsmagick1-dev \
+    libgraphicsmagick-q16-3 \
+    # Process management
+    dumb-init \
+    # Health check utilities
+    curl \
+    && rm -rf /var/lib/apt/lists/* \
+    && apt-get autoremove -y \
+    && apt-get autoclean
+
+# Create non-root user with specific UID/GID for better K8s compatibility
+RUN groupadd -g $GID $USER 2>/dev/null || groupmod -n $USER $(getent group $GID | cut -d: -f1) && \
+    useradd -u $UID -g $GID -m -s /bin/bash $USER 2>/dev/null || usermod -l $USER -d /home/$USER -m $(getent passwd $UID | cut -d: -f1)
+
+# Set working directory
+WORKDIR /app
+
+# Copy Node.js dependencies from builder stage
+COPY --from=node-builder /app/node_modules ./node_modules
+COPY --from=node-builder /app/package*.json ./
+
+# Copy application code with proper ownership
+COPY --chown=$USER:$USER . .
+
+# Verify .env file exists (now included in repo)
+RUN if [ ! -f .env ]; then echo "ERROR: .env file not found"; exit 1; fi && \
+    echo ".env file verified successfully"
+
+# Create app-specific directories and fix all permissions
+RUN mkdir -p logs temp && \
+    chown -R $USER:$USER /app && \
+    chmod +x docker/docker-entrypoint.sh 2>/dev/null || true
+
+# Set environment variables
+ENV NODE_ENV=production \
+    # Performance optimizations
+    NODE_OPTIONS="--max-old-space-size=2048" \
+    # Application port
+    PORT=3000
+
+# Switch to non-root user for runtime
+USER $USER
+
+# Expose port
+EXPOSE 3000
+
+# Improved health check with better error handling
+HEALTHCHECK --interval=30s --timeout=10s --start-period=60s --retries=3 \
+    CMD curl -f http://localhost:3000/api/health || curl -f http://localhost:3000/ || exit 1
+
+# Use dumb-init as PID 1 for proper signal handling
+ENTRYPOINT ["dumb-init", "--"]
+
+# Start application with proper babel transpilation
+CMD ["npm", "start"]

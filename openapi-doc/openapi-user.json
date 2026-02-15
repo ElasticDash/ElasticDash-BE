@@ -1,0 +1,1423 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ElasticDash User API",
+    "description": "User management endpoints for ElasticDash platform",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/user",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/user",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/user/register": {
+      "post": {
+        "summary": "Register new user",
+        "tags": ["User"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "username", "password"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "username": { "type": "string" },
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "User registered successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "number" },
+                    "message": { "type": "string" },
+                    "userId": { "type": "number" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/register/verify": {
+      "post": {
+        "summary": "Verify registration email",
+        "tags": ["User"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email", "verificationCode"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "verificationCode": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email verified",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "number" },
+                    "message": { "type": "string" },
+                    "token": { "type": "string" },
+                    "user": { "type": "object" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/user/register/verify/resend": {
+      "post": {
+        "summary": "Resend verification email",
+        "tags": ["User"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email resent"
+          }
+        }
+      }
+    },
+    "/user/account": {
+      "get": {
+        "summary": "Get user account information",
+        "tags": ["User"],
+        "responses": {
+          "200": {
+            "description": "Account info retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "number" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "userId": { "type": "number" },
+                        "email": { "type": "string" },
+                        "firstName": { "type": "string" },
+                        "lastName": { "type": "string" },
+                        "createdAt": { "type": "string", "format": "date-time" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      },
+      "put": {
+        "summary": "Update user account information",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "email": { "type": "string", "format": "email" },
+                  "firstName": { "type": "string" },
+                  "lastName": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Account updated"
+          }
+        }
+      }
+    },
+    "/user/account/email": {
+      "put": {
+        "summary": "Update user email",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Email updated"
+          }
+        }
+      }
+    },
+    "/user/account/email/verify/{url}": {
+      "get": {
+        "summary": "Verify email change",
+        "tags": ["User"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "url",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Email verified"
+          }
+        }
+      }
+    },
+    "/user/account/photo": {
+      "put": {
+        "summary": "Update user profile photo",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "photo": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Photo updated"
+          }
+        }
+      }
+    },
+    "/user/profile/my": {
+      "get": {
+        "summary": "Get my profile",
+        "tags": ["User"],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved"
+          }
+        }
+      }
+    },
+    "/user/profile/other/{id}": {
+      "get": {
+        "summary": "Get other user profile",
+        "tags": ["User"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Profile retrieved"
+          }
+        }
+      }
+    },
+    "/user/profile": {
+      "put": {
+        "summary": "Update profile",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "firstName": { "type": "string" },
+                  "lastName": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Profile updated"
+          }
+        }
+      }
+    },
+    "/user/profile/resume": {
+      "put": {
+        "summary": "Update user resume",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "multipart/form-data": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "resume": { "type": "string", "format": "binary" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Resume updated"
+          }
+        }
+      }
+    },
+    "/user/notification": {
+      "get": {
+        "summary": "Get user notifications",
+        "tags": ["User"],
+        "responses": {
+          "200": {
+            "description": "Notifications retrieved"
+          }
+        }
+      }
+    },
+    "/user/notification/read/{id}": {
+      "get": {
+        "summary": "Mark notification as read",
+        "tags": ["User"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification marked as read"
+          }
+        }
+      }
+    },
+    "/user/notification/delete/{id}": {
+      "delete": {
+        "summary": "Delete notification",
+        "tags": ["User"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Notification deleted"
+          }
+        }
+      }
+    },
+    "/user/testrequest": {
+      "post": {
+        "summary": "Create test request",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "testType": { "type": "string" },
+                  "requestDate": { "type": "string", "format": "date-time" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test request created"
+          }
+        }
+      }
+    },
+    "/user/testrequest/page/{page}": {
+      "get": {
+        "summary": "Get test requests by page",
+        "tags": ["User"],
+        "parameters": [
+          {
+            "name": "page",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test requests retrieved"
+          }
+        }
+      }
+    },
+    "/user/testrequest/delete/{id}": {
+      "delete": {
+        "summary": "Delete test request",
+        "tags": ["User"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "number" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test request deleted"
+          }
+        }
+      }
+    },
+    "/user/checkpassword": {
+      "get": {
+        "summary": "Check password validity",
+        "tags": ["User"],
+        "responses": {
+          "200": {
+            "description": "Password check result"
+          }
+        }
+      }
+    },
+    "/user/confirmpassword": {
+      "put": {
+        "summary": "Confirm password",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["password"],
+                "properties": {
+                  "password": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password confirmed"
+          }
+        }
+      }
+    },
+    "/user/updatepassword": {
+      "put": {
+        "summary": "Update password",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["currentPassword", "newPassword"],
+                "properties": {
+                  "currentPassword": { "type": "string" },
+                  "newPassword": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password updated"
+          }
+        }
+      }
+    },
+    "/user/forgotpassword": {
+      "post": {
+        "summary": "Request password reset",
+        "tags": ["User"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset email sent"
+          }
+        }
+      }
+    },
+    "/user/resetpassword": {
+      "post": {
+        "summary": "Reset password with token",
+        "tags": ["User"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token", "newPassword"],
+                "properties": {
+                  "token": { "type": "string" },
+                  "newPassword": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Password reset successful"
+          }
+        }
+      }
+    },
+    "/user/google/auth": {
+      "post": {
+        "summary": "Google OAuth authentication",
+        "tags": ["User"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
+                  "token": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful"
+          }
+        }
+      }
+    },
+    "/user/microsoft/auth": {
+      "post": {
+        "summary": "Microsoft OAuth authentication",
+        "tags": ["User"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["token"],
+                "properties": {
+                  "token": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Authentication successful"
+          }
+        }
+      }
+    },
+    "/user/onboarding/process": {
+      "get": {
+        "summary": "Get onboarding process status",
+        "tags": ["User"],
+        "responses": {
+          "200": {
+            "description": "Onboarding status retrieved"
+          }
+        }
+      },
+      "post": {
+        "summary": "Update onboarding process",
+        "tags": ["User"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "step": { "type": "number" },
+                  "completed": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Onboarding updated"
+          }
+        }
+      }
+    },
+    "/user/feedbacks/post": {
+      "post": {
+        "summary": "Submit user feedback for a message or conversation",
+        "description": "Allows authenticated users to provide feedback on AI-generated responses or conversations. Users can mark responses as helpful or unhelpful, and for unhelpful responses, they must provide a description of the issue and their expected response. This feedback is used to improve AI response quality and track user satisfaction.",
+        "tags": ["User - Feedback"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["messageId", "isHelpful"],
+                "properties": {
+                  "messageId": {
+                    "type": "integer",
+                    "description": "ID of the message being reviewed",
+                    "example": 12345
+                  },
+                  "conversationId": {
+                    "type": "integer",
+                    "description": "Optional conversation ID for context",
+                    "example": 789
+                  },
+                  "feedbackType": {
+                    "type": "string",
+                    "description": "Category of feedback (e.g., 'general', 'accuracy', 'relevance')",
+                    "default": "general",
+                    "example": "accuracy"
+                  },
+                  "isHelpful": {
+                    "type": "boolean",
+                    "description": "Whether the response was helpful",
+                    "example": false
+                  },
+                  "description": {
+                    "type": "string",
+                    "description": "Required for unhelpful feedback - describes what was wrong",
+                    "example": "The response provided incorrect information about the API endpoint"
+                  },
+                  "expectedResponse": {
+                    "type": "string",
+                    "description": "Required for unhelpful feedback - what the user expected to receive",
+                    "example": "I expected details about the POST /api/users endpoint"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feedback submitted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "feedbackId": { "type": "integer", "description": "ID of the created/updated feedback" },
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request - missing required fields (description and expectedResponse required for unhelpful feedback)"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/user/feedbacks/all": {
+      "get": {
+        "summary": "List all feedback submitted by the current user",
+        "description": "Retrieves a complete list of all feedback entries submitted by the authenticated user, including both helpful and unhelpful feedback. Each entry includes the message context, feedback type, timestamps, and current status. Use this to review your feedback history or track which messages you've already provided feedback for.",
+        "tags": ["User - Feedback"],
+        "responses": {
+          "200": {
+            "description": "Feedback list retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer", "description": "Feedback ID" },
+                      "messageId": { "type": "integer", "description": "Associated message ID" },
+                      "conversationId": { "type": "integer", "description": "Associated conversation ID" },
+                      "feedbackType": { "type": "string", "description": "Feedback category" },
+                      "isHelpful": { "type": "boolean", "description": "Whether marked as helpful" },
+                      "description": { "type": "string", "description": "User's description of the issue (if unhelpful)" },
+                      "status": { "type": "string", "description": "Feedback status (e.g., 'active', 'withdrawn')" },
+                      "createdAt": { "type": "string", "format": "date-time" },
+                      "updatedAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/user/feedbacks/unhelpful": {
+      "get": {
+        "summary": "List only unhelpful feedback submitted by the current user",
+        "description": "Retrieves a filtered list containing only the feedback entries where the user marked responses as unhelpful. This is useful for reviewing issues that need attention, tracking unresolved problems, or analyzing patterns in unhelpful responses. Each entry includes the user's description of what was wrong and their expected response.",
+        "tags": ["User - Feedback"],
+        "responses": {
+          "200": {
+            "description": "Unhelpful feedback list retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "messageId": { "type": "integer" },
+                      "conversationId": { "type": "integer" },
+                      "feedbackType": { "type": "string" },
+                      "isHelpful": { "type": "boolean", "example": false },
+                      "description": { "type": "string", "description": "What was wrong with the response" },
+                      "expectedResponse": { "type": "string", "description": "What the user expected" },
+                      "status": { "type": "string" },
+                      "createdAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/user/feedback/detail/{id}": {
+      "get": {
+        "summary": "Get detailed context for a specific feedback entry",
+        "description": "Retrieves comprehensive details for a specific feedback entry, including the feedback metadata and surrounding conversation context. Returns the relevant message along with 3 messages before and after it to provide full context for understanding the feedback. Only the feedback owner can access this information.",
+        "tags": ["User - Feedback"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The feedback ID to retrieve details for"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feedback details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "feedback": {
+                      "type": "object",
+                      "description": "The feedback entry details",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "messageId": { "type": "integer" },
+                        "userId": { "type": "integer" },
+                        "isHelpful": { "type": "boolean" },
+                        "description": { "type": "string" },
+                        "expectedResponse": { "type": "string" },
+                        "status": { "type": "string" }
+                      }
+                    },
+                    "messages": {
+                      "type": "array",
+                      "description": "Context messages (3 before + the relevant message + 3 after)",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "role": { "type": "string", "enum": ["user", "assistant"] },
+                          "content": { "type": "string" },
+                          "timestamp": { "type": "string", "format": "date-time" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid feedback ID"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Forbidden - feedback belongs to another user"
+          },
+          "404": {
+            "description": "Feedback not found"
+          }
+        }
+      }
+    },
+    "/user/feedback/witdraw/{id}": {
+      "get": {
+        "summary": "Get feedback details before withdrawing (typo: should be 'withdraw')",
+        "description": "Retrieves feedback details with surrounding message context to review before withdrawal. This is a legacy endpoint with a typo in the URL ('witdraw' instead of 'withdraw'). It functions identically to GET /user/feedback/detail/:id, providing the feedback entry and 3 messages before/after for context. Only the feedback owner can access this.",
+        "tags": ["User - Feedback"],
+        "deprecated": false,
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The feedback ID to retrieve for withdrawal review"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feedback details retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "feedback": {
+                      "type": "object",
+                      "description": "The feedback entry",
+                      "properties": {
+                        "id": { "type": "integer" },
+                        "user_id": { "type": "integer", "description": "Owner user ID (snake_case for legacy compatibility)" },
+                        "messageId": { "type": "integer" },
+                        "status": { "type": "string" }
+                      }
+                    },
+                    "messages": {
+                      "type": "array",
+                      "description": "Context messages around the feedback"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid feedback ID"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Forbidden - feedback belongs to another user"
+          }
+        }
+      }
+    },
+    "/user/feedback/withdraw/{id}": {
+      "post": {
+        "summary": "Withdraw previously submitted feedback",
+        "description": "Marks a feedback entry as 'withdrawn', effectively retracting your previous feedback. This is useful if you provided incorrect feedback, changed your mind, or the underlying issue was resolved. Only the feedback owner can withdraw their own feedback. Once withdrawn, the feedback is no longer counted in analytics but remains in the system for audit purposes.",
+        "tags": ["User - Feedback"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" },
+            "description": "The feedback ID to withdraw"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feedback withdrawn successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid feedback ID"
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "403": {
+            "description": "Forbidden - can only withdraw your own feedback"
+          },
+          "404": {
+            "description": "Feedback not found"
+          }
+        }
+      }
+    },
+    "/user/unsubscribe/{url}": {
+      "get": {
+        "summary": "Get unsubscribe information by unique URL token",
+        "description": "Retrieves unsubscribe details and preferences associated with a specific unsubscribe URL token. This endpoint is public (no authentication required) and is typically accessed by clicking an unsubscribe link in an email. Returns the user's current subscription preferences and available options.",
+        "tags": ["User - Unsubscribe"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "url",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" },
+            "description": "Unique unsubscribe URL token sent in email unsubscribe links"
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Unsubscribe information retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "userId": { "type": "integer", "description": "Associated user ID" },
+                    "email": { "type": "string", "description": "User's email address" },
+                    "preferences": { "type": "object", "description": "Current notification preferences" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Unsubscribe URL not found or expired"
+          }
+        }
+      }
+    },
+    "/user/unsubscribe": {
+      "put": {
+        "summary": "Unsubscribe user from email notifications",
+        "description": "Updates user's email notification preferences to unsubscribe from specified types of emails. Can unsubscribe from all emails or specific categories. This endpoint uses the unsubscribe URL token from the request body to identify the user without requiring authentication, enabling one-click unsubscribe functionality from email links.",
+        "tags": ["User - Unsubscribe"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "url": { "type": "string", "description": "Unsubscribe URL token from email link" },
+                  "unsubscribeAll": { "type": "boolean", "description": "If true, unsubscribe from all email types" },
+                  "categories": {
+                    "type": "array",
+                    "items": { "type": "string" },
+                    "description": "Specific email categories to unsubscribe from (e.g., 'marketing', 'updates', 'notifications')"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Unsubscribe preferences updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Successfully unsubscribed from email notifications" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request - missing or invalid URL token"
+          },
+          "404": {
+            "description": "Unsubscribe URL not found or expired"
+          }
+        }
+      }
+    },
+    "/user/database-connection": {
+      "get": {
+        "summary": "Get current user's database connection configuration",
+        "description": "Retrieves the authenticated user's stored database connection settings. This includes the database connection string used for connecting to external databases for query execution and data access. The connection string may contain sensitive credentials, so it should be handled securely on the client side.",
+        "tags": ["User - Settings"],
+        "responses": {
+          "200": {
+            "description": "Database connection settings retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "connectionString": {
+                      "type": "string",
+                      "description": "Database connection string (format: dbtype://user:password@host:port/database)",
+                      "example": "postgresql://user:password@localhost:5432/mydb"
+                    },
+                    "lastUpdated": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When this connection was last modified"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "No database connection configured for this user"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update or create user's database connection configuration",
+        "description": "Sets or updates the authenticated user's database connection string. This connection string is used for executing queries against external databases. The string is stored securely and can be updated at any time. If no connection exists, it will be created; if one exists, it will be updated (upsert operation).",
+        "tags": ["User - Settings"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["connectionString"],
+                "properties": {
+                  "connectionString": {
+                    "type": "string",
+                    "description": "Complete database connection string including credentials. Format varies by database type (PostgreSQL, MySQL, MongoDB, etc.)",
+                    "example": "postgresql://admin:securepass@db.example.com:5432/production"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Database connection updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Database connection saved successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid connection string format"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/user/settings/apibaseurl": {
+      "get": {
+        "summary": "Get user's API base URL configuration",
+        "description": "Retrieves the authenticated user's configured API base URL setting. This URL is used as the default base for API calls made within the platform, allowing users to customize the API endpoint they're working with (e.g., switching between development, staging, and production environments).",
+        "tags": ["User - Settings"],
+        "responses": {
+          "200": {
+            "description": "API base URL retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "url": {
+                      "type": "string",
+                      "format": "uri",
+                      "description": "The configured API base URL",
+                      "example": "https://api.example.com/v1"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update user's API base URL configuration",
+        "description": "Sets or updates the authenticated user's API base URL setting. This allows users to configure which API endpoint the platform should use for making requests. Useful for switching between different environments or API versions. Triggers a WebSocket 'update account' event to notify connected clients of the change.",
+        "tags": ["User - Settings"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["url"],
+                "properties": {
+                  "url": {
+                    "type": "string",
+                    "format": "uri",
+                    "description": "New API base URL to use for platform requests",
+                    "example": "https://api.example.com/v2"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "API base URL updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "url": { "type": "string", "description": "The updated API base URL" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid URL format"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/user/settings/oauthtoken": {
+      "get": {
+        "summary": "Get user's OAuth token configuration",
+        "description": "Retrieves the authenticated user's stored OAuth token settings. This token is used for authenticating with external services and APIs that require OAuth authentication. The actual token value may be masked or partially hidden for security reasons.",
+        "tags": ["User - Settings"],
+        "responses": {
+          "200": {
+            "description": "OAuth token settings retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "oauthToken": {
+                      "type": "string",
+                      "description": "OAuth token (may be partially masked for security)",
+                      "example": "eyJhbGc...***...xyz"
+                    },
+                    "tokenType": {
+                      "type": "string",
+                      "description": "Type of OAuth token (e.g., 'Bearer')",
+                      "example": "Bearer"
+                    },
+                    "expiresAt": {
+                      "type": "string",
+                      "format": "date-time",
+                      "description": "When the token expires (if applicable)"
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "No OAuth token configured for this user"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update user's OAuth token configuration",
+        "description": "Sets or updates the authenticated user's OAuth token used for external service authentication. This token is stored securely and used when making authenticated requests to external APIs on behalf of the user. Triggers a WebSocket 'update account' event to notify connected clients.",
+        "tags": ["User - Settings"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["oauthToken"],
+                "properties": {
+                  "oauthToken": {
+                    "type": "string",
+                    "description": "Complete OAuth token string obtained from authentication flow",
+                    "example": "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9..."
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OAuth token updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "OAuth token saved successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid token format"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    },
+    "/user/settings/llm": {
+      "get": {
+        "summary": "Get user's LLM (Large Language Model) configuration",
+        "description": "Retrieves the authenticated user's configured LLM settings including model selection, API keys, parameters, and preferences. These settings control which LLM provider and model are used for AI-powered features within the platform.",
+        "tags": ["User - Settings"],
+        "responses": {
+          "200": {
+            "description": "LLM configuration retrieved successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "provider": {
+                      "type": "string",
+                      "description": "LLM provider name (e.g., 'openai', 'anthropic', 'local')",
+                      "example": "openai"
+                    },
+                    "model": {
+                      "type": "string",
+                      "description": "Specific model identifier",
+                      "example": "gpt-4"
+                    },
+                    "apiKey": {
+                      "type": "string",
+                      "description": "API key (masked for security)",
+                      "example": "sk-...***...xyz"
+                    },
+                    "parameters": {
+                      "type": "object",
+                      "description": "Model-specific parameters (temperature, max_tokens, etc.)",
+                      "properties": {
+                        "temperature": { "type": "number", "example": 0.7 },
+                        "maxTokens": { "type": "integer", "example": 2000 }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required"
+          },
+          "404": {
+            "description": "No LLM configuration found for this user"
+          }
+        }
+      },
+      "put": {
+        "summary": "Update user's LLM (Large Language Model) configuration",
+        "description": "Sets or updates the authenticated user's LLM settings including provider selection, model choice, API credentials, and inference parameters. This configuration affects all AI-powered features used by the user. Triggers a WebSocket 'update account' event to notify connected clients.",
+        "tags": ["User - Settings"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "provider": {
+                    "type": "string",
+                    "description": "LLM provider to use",
+                    "enum": ["openai", "anthropic", "local", "azure"],
+                    "example": "openai"
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "Model identifier (provider-specific)",
+                    "example": "gpt-4-turbo"
+                  },
+                  "apiKey": {
+                    "type": "string",
+                    "description": "API key for the selected provider (stored securely)",
+                    "example": "sk-proj-abc123..."
+                  },
+                  "parameters": {
+                    "type": "object",
+                    "description": "Model-specific inference parameters",
+                    "properties": {
+                      "temperature": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 2,
+                        "description": "Sampling temperature (0 = deterministic, 2 = very random)",
+                        "example": 0.8
+                      },
+                      "maxTokens": {
+                        "type": "integer",
+                        "description": "Maximum tokens in model response",
+                        "example": 4000
+                      },
+                      "topP": {
+                        "type": "number",
+                        "minimum": 0,
+                        "maximum": 1,
+                        "description": "Nucleus sampling parameter",
+                        "example": 0.9
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "LLM configuration updated successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "LLM configuration saved successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid configuration - missing required fields or invalid values"
+          },
+          "401": {
+            "description": "Authentication required"
+          }
+        }
+      }
+    }
+  }
+}

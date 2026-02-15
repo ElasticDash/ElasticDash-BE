@@ -1,0 +1,113 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "Persona API",
+    "version": "1.0.0",
+    "description": "API for managing customer personas and persona estimation."
+  },
+  "tags": [
+    { "name": "Persona", "description": "Persona management" }
+  ],
+  "paths": {
+    "/persona": {
+      "get": {
+        "tags": ["Persona"],
+        "summary": "List all personas",
+        "responses": {
+          "200": {
+            "description": "List of personas",
+            "content": { "application/json": { "schema": { "type": "array", "items": { "$ref": "#/components/schemas/Persona" } } } }
+          }
+        }
+      },
+      "post": {
+        "tags": ["Persona"],
+        "summary": "Create a new persona (manual)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PersonaCreate" } } }
+        },
+        "responses": {
+          "200": { "description": "Created persona", "content": { "application/json": { "schema": { "$ref": "#/components/schemas/Persona" } } } }
+        }
+      }
+    },
+    "/persona/{id}": {
+      "delete": {
+        "tags": ["Persona"],
+        "summary": "Delete a persona (soft delete)",
+        "parameters": [ { "name": "id", "in": "path", "required": true, "schema": { "type": "integer" } } ],
+        "responses": {
+          "200": { "description": "Delete result", "content": { "application/json": { "schema": { "type": "object", "properties": { "success": { "type": "boolean" } } } } } }
+        }
+      }
+    },
+    "/persona/estimate": {
+      "post": {
+        "tags": ["Persona"],
+        "summary": "Estimate persona for a conversation (auto)",
+        "requestBody": {
+          "required": true,
+          "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PersonaEstimateRequest" } } }
+        },
+        "responses": {
+          "200": {
+            "description": "Estimated persona and conversation record",
+            "content": { "application/json": { "schema": { "$ref": "#/components/schemas/PersonaEstimateResponse" } } }
+          }
+        }
+      }
+    }
+  },
+  "components": {
+    "schemas": {
+      "Persona": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "is_preset": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "created_by": { "type": "integer" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "updated_by": { "type": "integer" },
+          "deleted": { "type": "boolean" }
+        }
+      },
+      "PersonaCreate": {
+        "type": "object",
+        "required": ["name"],
+        "properties": {
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "is_preset": { "type": "boolean" },
+          "created_by": { "type": "integer" }
+        }
+      },
+      "PersonaEstimateRequest": {
+        "type": "object",
+        "required": ["external_id"],
+        "properties": {
+          "external_id": { "type": "string" }
+        }
+      },
+      "PersonaEstimateResponse": {
+        "type": "object",
+        "properties": {
+          "persona": { "$ref": "#/components/schemas/Persona" },
+          "conversation": {
+            "type": "object",
+            "properties": {
+              "id": { "type": "integer" },
+              "external_id": { "type": "string" },
+              "content": { "type": "object" },
+              "created_at": { "type": "string", "format": "date-time" },
+              "created_by": { "type": "integer" }
+            }
+          }
+        }
+      }
+    }
+  }
+}

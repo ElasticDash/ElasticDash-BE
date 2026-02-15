@@ -1,0 +1,499 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ElasticDash Traces API",
+    "description": "Trace and session management endpoints for ElasticDash platform",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/traces",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/traces",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Trace": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string", "description": "Unique trace identifier" },
+          "timestamp": { "type": "string", "format": "date-time", "description": "Trace timestamp" },
+          "name": { "type": "string", "description": "Trace name" },
+          "metadata": { "type": "object", "description": "Trace metadata" },
+          "metadataName": { "type": "string", "description": "Name from metadata" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "steps": { "type": "integer", "description": "Number of observation steps" }
+        }
+      },
+      "TraceDetail": {
+        "allOf": [
+          { "$ref": "#/components/schemas/Trace" },
+          {
+            "type": "object",
+            "properties": {
+              "observations": {
+                "type": "array",
+                "description": "Array of observations for this trace",
+                "items": {
+                  "$ref": "#/components/schemas/Observation"
+                }
+              }
+            }
+          }
+        ]
+      },
+      "Observation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "string" },
+          "trace_id": { "type": "string" },
+          "name": { "type": "string" },
+          "input": { "type": "string", "description": "Observation input data" },
+          "output": { "type": "string", "description": "Observation output data" },
+          "metadata": { "type": "object" },
+          "created_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Session": {
+        "type": "object",
+        "properties": {
+          "session_id": { "type": "string", "description": "Session identifier" },
+          "count": { "type": "integer", "description": "Number of traces in session" },
+          "metadataName": { "type": "string", "description": "Name from metadata" }
+        }
+      },
+      "PaginatedTraceResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Trace" }
+          },
+          "total": { "type": "integer", "description": "Total count of traces" },
+          "limit": { "type": "integer", "description": "Pagination limit" },
+          "offset": { "type": "integer", "description": "Pagination offset" }
+        }
+      },
+      "PaginatedSessionResponse": {
+        "type": "object",
+        "properties": {
+          "data": {
+            "type": "array",
+            "items": { "$ref": "#/components/schemas/Session" }
+          },
+          "total": { "type": "integer", "description": "Total count of sessions" },
+          "limit": { "type": "integer", "description": "Pagination limit" },
+          "offset": { "type": "integer", "description": "Pagination offset" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "status": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/traces/list": {
+      "post": {
+        "summary": "List traces with pagination and filtering",
+        "description": "Retrieve a paginated list of traces with optional filtering. Only returns traces with valid observations (non-empty input/output).",
+        "tags": ["Traces"],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Maximum number of traces to return"
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Number of traces to skip"
+                  },
+                  "filter": {
+                    "type": "string",
+                    "description": "SQL-like filter expression (e.g., \"name LIKE '%test%'\")"
+                  }
+                }
+              },
+              "examples": {
+                "basic": {
+                  "summary": "Basic pagination",
+                  "value": {
+                    "limit": 50,
+                    "offset": 0
+                  }
+                },
+                "withFilter": {
+                  "summary": "With name filter",
+                  "value": {
+                    "limit": 100,
+                    "offset": 0,
+                    "filter": "name LIKE '%chatbot%'"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved traces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedTraceResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "id": "trace-123",
+                      "timestamp": "2026-02-15T10:30:00.000Z",
+                      "name": "chatbot_conversation",
+                      "metadata": { "name": "User Chat" },
+                      "metadataName": "User Chat",
+                      "created_at": "2026-02-15T10:30:00.000Z",
+                      "updated_at": "2026-02-15T10:30:00.000Z",
+                      "steps": 5
+                    }
+                  ],
+                  "total": 14,
+                  "limit": 100,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized - Invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/traces/sessions/list": {
+      "post": {
+        "summary": "List sessions with pagination",
+        "description": "Retrieve a paginated list of sessions grouped by session_id, with trace counts.",
+        "tags": ["Sessions"],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": {
+                    "type": "integer",
+                    "default": 100,
+                    "description": "Maximum number of sessions to return"
+                  },
+                  "offset": {
+                    "type": "integer",
+                    "default": 0,
+                    "description": "Number of sessions to skip"
+                  },
+                  "filterQuery": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Filter query expression"
+                  },
+                  "filterParams": {
+                    "type": "object",
+                    "default": {},
+                    "description": "Filter parameters object"
+                  },
+                  "searchQuery": {
+                    "type": "string",
+                    "default": "",
+                    "description": "Search query expression"
+                  },
+                  "searchParams": {
+                    "type": "object",
+                    "default": {},
+                    "description": "Search parameters object"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved sessions",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/PaginatedSessionResponse"
+                },
+                "example": {
+                  "data": [
+                    {
+                      "session_id": "session-abc123",
+                      "count": 15,
+                      "metadataName": "Customer Support Chat"
+                    }
+                  ],
+                  "total": 5,
+                  "limit": 100,
+                  "offset": 0
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/traces/sessions/{sessionId}": {
+      "get": {
+        "summary": "Get all traces for a session",
+        "description": "Retrieve all traces associated with a specific session ID, ordered by timestamp.",
+        "tags": ["Sessions"],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to retrieve traces for",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved session traces",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Trace" }
+                    },
+                    {
+                      "type": "object",
+                      "properties": {
+                        "data": {
+                          "type": "array",
+                          "items": { "$ref": "#/components/schemas/Trace" }
+                        },
+                        "meta": { "type": "array" },
+                        "rows": { "type": "integer" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/traces/detail/{id}": {
+      "get": {
+        "summary": "Get trace detail with observations",
+        "description": "Retrieve detailed information about a specific trace, including all associated observations with valid input/output data.",
+        "tags": ["Traces"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The trace ID to retrieve",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved trace detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "$ref": "#/components/schemas/TraceDetail"
+                },
+                "example": {
+                  "id": "trace-123",
+                  "timestamp": "2026-02-15T10:30:00.000Z",
+                  "name": "chatbot_conversation",
+                  "metadata": { "name": "User Chat", "userId": "user-456" },
+                  "created_at": "2026-02-15T10:30:00.000Z",
+                  "updated_at": "2026-02-15T10:30:00.000Z",
+                  "observations": [
+                    {
+                      "id": "obs-1",
+                      "trace_id": "trace-123",
+                      "name": "llm_call",
+                      "input": "User question about pricing",
+                      "output": "Response about pricing plans",
+                      "metadata": { "model": "gpt-4" },
+                      "created_at": "2026-02-15T10:30:01.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Trace not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "message": "Trace not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/traces/delete/{id}": {
+      "delete": {
+        "summary": "Delete a trace (soft delete)",
+        "description": "Soft delete a trace by setting is_deleted flag to 1. The trace will no longer appear in list queries.",
+        "tags": ["Traces"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The trace ID to delete",
+            "schema": {
+              "type": "string"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully deleted trace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": {
+                      "type": "boolean",
+                      "example": true
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Trace not found or not authorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "message": "Trace not found"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

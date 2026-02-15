@@ -1,0 +1,528 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ElasticDash General API",
+    "description": "General utility endpoints for ElasticDash platform",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/general",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/general",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/general/files/{key}": {
+      "get": {
+        "summary": "Get file by key",
+        "tags": ["Files"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "key",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "File retrieved",
+            "content": {
+              "application/octet-stream": {
+                "schema": {
+                  "type": "string",
+                  "format": "binary"
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "File not found"
+          }
+        }
+      }
+    },
+    "/general/secret/list": {
+      "get": {
+        "summary": "Get secrets list",
+        "tags": ["Secrets"],
+        "responses": {
+          "200": {
+            "description": "Secrets retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "name": { "type": "string" },
+                      "createdAt": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/general/secret/get/{secretName}": {
+      "get": {
+        "summary": "Get secret by name",
+        "tags": ["Secrets"],
+        "parameters": [
+          {
+            "name": "secretName",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Secret retrieved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "name": { "type": "string" },
+                    "value": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Secret not found"
+          }
+        }
+      }
+    },
+    "/general/secret/create": {
+      "post": {
+        "summary": "Create secret",
+        "tags": ["Secrets"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name", "value"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "value": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Secret created"
+          }
+        }
+      }
+    },
+    "/general/secret/delete/{secretName}": {
+      "delete": {
+        "summary": "Delete secret",
+        "tags": ["Secrets"],
+        "parameters": [
+          {
+            "name": "secretName",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "string" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Secret deleted"
+          },
+          "404": {
+            "description": "Secret not found"
+          }
+        }
+      }
+    },
+    "/general/aiservice/xai": {
+      "post": {
+        "summary": "Call XAI service",
+        "tags": ["AI Services"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": { "type": "string" },
+                  "model": { "type": "string" },
+                  "temperature": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "number" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "response": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/general/aiservice/claude": {
+      "post": {
+        "summary": "Call Claude AI service",
+        "tags": ["AI Services"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["prompt"],
+                "properties": {
+                  "prompt": { "type": "string" },
+                  "model": { "type": "string" },
+                  "temperature": { "type": "number" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Response received",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "number" },
+                    "data": {
+                      "type": "object",
+                      "properties": {
+                        "response": { "type": "string" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/general/aiservice/openai": {
+      "post": {
+        "summary": "Send chat completion request to OpenAI",
+        "description": "Forwards authenticated requests to OpenAI's chat completion API. This endpoint acts as a proxy to OpenAI, allowing users to generate AI responses using OpenAI models (GPT-3.5, GPT-4, etc.). Requires authentication via JWT token. The request body accepts standard OpenAI chat completion parameters including messages array, model selection, temperature, and token limits.",
+        "operationId": "callOpenAI",
+        "tags": ["AI Services"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["messages"],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "description": "Array of message objects in OpenAI chat format",
+                    "items": {
+                      "type": "object",
+                      "required": ["role", "content"],
+                      "properties": {
+                        "role": {
+                          "type": "string",
+                          "enum": ["system", "user", "assistant"],
+                          "description": "The role of the message sender"
+                        },
+                        "content": {
+                          "type": "string",
+                          "description": "The content of the message"
+                        }
+                      }
+                    },
+                    "example": [
+                      { "role": "system", "content": "You are a helpful assistant." },
+                      { "role": "user", "content": "What is the capital of France?" }
+                    ]
+                  },
+                  "model": {
+                    "type": "string",
+                    "description": "OpenAI model to use (defaults to environment variable OPENAI_DEFAULT_MODEL)",
+                    "example": "gpt-4"
+                  },
+                  "temperature": {
+                    "type": "number",
+                    "minimum": 0,
+                    "maximum": 2,
+                    "default": 0.3,
+                    "description": "Sampling temperature for response randomness (0-2). Lower values make output more focused and deterministic."
+                  },
+                  "maxTokens": {
+                    "type": "integer",
+                    "description": "Maximum number of tokens to generate in the response",
+                    "example": 1000
+                  },
+                  "timeoutMs": {
+                    "type": "integer",
+                    "description": "Request timeout in milliseconds. If not specified, no timeout is applied.",
+                    "example": 30000
+                  },
+                  "extra": {
+                    "type": "object",
+                    "description": "Additional OpenAI API parameters (e.g., top_p, frequency_penalty, presence_penalty)",
+                    "additionalProperties": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "OpenAI response received successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "description": "Standard OpenAI chat completion response",
+                  "properties": {
+                    "id": {
+                      "type": "string",
+                      "description": "Unique identifier for the completion"
+                    },
+                    "object": {
+                      "type": "string",
+                      "example": "chat.completion"
+                    },
+                    "created": {
+                      "type": "integer",
+                      "description": "Unix timestamp of creation time"
+                    },
+                    "model": {
+                      "type": "string",
+                      "description": "Model used for completion"
+                    },
+                    "choices": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "index": { "type": "integer" },
+                          "message": {
+                            "type": "object",
+                            "properties": {
+                              "role": { "type": "string" },
+                              "content": { "type": "string" }
+                            }
+                          },
+                          "finish_reason": { "type": "string" }
+                        }
+                      }
+                    },
+                    "usage": {
+                      "type": "object",
+                      "properties": {
+                        "prompt_tokens": { "type": "integer" },
+                        "completion_tokens": { "type": "integer" },
+                        "total_tokens": { "type": "integer" }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Authentication required - invalid or expired token",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "status": { "type": "integer", "example": 401 },
+                    "message": { "type": "string", "example": "You haven't logged in or token has expired." }
+                  }
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "OpenAI API error or internal server error"
+          }
+        }
+      }
+    },
+    "/general/sql/query": {
+      "post": {
+        "summary": "Execute read-only SQL query against ElasticDash database",
+        "description": "Executes SQL SELECT queries against the ElasticDash PostgreSQL database. This endpoint is restricted to read-only operations - all write operations (INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, EXEC) are forbidden and will return 403. Authenticated users can query their own data by using the CURRENT_USER_ID placeholder, which is automatically replaced with the user's ID. If the user is not authenticated, CURRENT_USER_ID is replaced with NULL.",
+        "operationId": "executeSqlQuery",
+        "tags": ["Database"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["query"],
+                "properties": {
+                  "query": {
+                    "type": "string",
+                    "description": "SQL SELECT query to execute. Use 'CURRENT_USER_ID' placeholder to reference the authenticated user's ID. Only SELECT queries are allowed - write operations will be rejected with 403 Forbidden.",
+                    "example": "SELECT * FROM traces WHERE user_id = CURRENT_USER_ID LIMIT 10"
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Query executed successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "rows": {
+                      "type": "array",
+                      "description": "Array of result rows returned by the query",
+                      "items": {
+                        "type": "object",
+                        "additionalProperties": true
+                      }
+                    },
+                    "rowCount": {
+                      "type": "integer",
+                      "description": "Number of rows returned by the query",
+                      "example": 10
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid request - missing query parameter"
+          },
+          "403": {
+            "description": "Forbidden - query contains write operations (INSERT, UPDATE, DELETE, DROP, ALTER, CREATE, TRUNCATE, EXEC, EXECUTE)",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "integer",
+                  "example": 403
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Database query error - syntax error or execution failure"
+          }
+        }
+      }
+    },
+    "/general/waitlist": {
+      "post": {
+        "summary": "Add to waitlist",
+        "tags": ["Waitlist"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["email"],
+                "properties": {
+                  "email": { "type": "string", "format": "email" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Added to waitlist"
+          }
+        }
+      }
+    },
+    "/general/waitlist/{id}": {
+      "put": {
+        "summary": "Update waitlist entry",
+        "tags": ["Waitlist"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "number" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "status": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Entry updated"
+          },
+          "404": {
+            "description": "Entry not found"
+          }
+        }
+      }
+    }
+  }
+}

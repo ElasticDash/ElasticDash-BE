@@ -1,0 +1,455 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ElasticDash Features API",
+    "description": "Test project feature management and AI-powered trace analysis endpoints",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/features",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/features",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Feature": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer", "description": "Feature ID" },
+          "test_project_id": { "type": "integer", "description": "Test project this feature belongs to" },
+          "feature_name": { "type": "string", "description": "Name of the feature" },
+          "displayed_name": { "type": "string", "description": "Display name for the feature" },
+          "feature_description": { "type": "string", "description": "Description of the feature" },
+          "enabled": { "type": "boolean", "description": "Whether the feature is enabled" },
+          "prompt_changed_risk": { "type": "boolean", "description": "Flag indicating prompt change risk detected" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "deleted": { "type": "boolean", "default": false }
+        }
+      },
+      "AnalysisResult": {
+        "type": "object",
+        "properties": {
+          "success": { "type": "boolean" },
+          "trace_id": { "type": "string" },
+          "feature_id": { "type": "integer" },
+          "feature_name": { "type": "string" },
+          "prompt_fingerprint": { "type": "string" },
+          "root_cause": {
+            "type": "string",
+            "enum": ["SYSTEM_CHANGED", "MODEL_INSTABILITY", "USER_INTENT_CHANGED", "PROMPT_AD_HOC", "NO_PREVIOUS_DATA"]
+          },
+          "confidence_score": { "type": "number" },
+          "analysis_details": { "type": "object" },
+          "message": { "type": "string" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "status": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/features/list": {
+      "get": {
+        "summary": "List all features for user's test project",
+        "description": "Retrieve all features associated with the authenticated user's test project.",
+        "tags": ["Features"],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved features",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/Feature" }
+                },
+                "example": [
+                  {
+                    "id": 1,
+                    "test_project_id": 10,
+                    "feature_name": "user_authentication",
+                    "displayed_name": "User Authentication",
+                    "feature_description": "Handles user login and registration",
+                    "enabled": true,
+                    "prompt_changed_risk": false,
+                    "created_at": "2026-02-01T10:00:00.000Z",
+                    "updated_at": "2026-02-15T10:00:00.000Z",
+                    "deleted": false
+                  }
+                ]
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/{id}": {
+      "get": {
+        "summary": "Get feature by ID",
+        "description": "Retrieve detailed information about a specific feature by its ID. User must own the associated test project.",
+        "tags": ["Features"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The feature ID to retrieve",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved feature",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Feature" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found or no access",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/create": {
+      "post": {
+        "summary": "Create a new feature",
+        "description": "Create a new feature for a test project. User must own the test project.",
+        "tags": ["Features"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["test_project_id", "feature_name"],
+                "properties": {
+                  "test_project_id": {
+                    "type": "integer",
+                    "description": "ID of the test project"
+                  },
+                  "feature_name": {
+                    "type": "string",
+                    "description": "Name of the feature"
+                  },
+                  "feature_description": {
+                    "type": "string",
+                    "description": "Optional description of the feature"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "default": true,
+                    "description": "Whether the feature is enabled"
+                  }
+                }
+              },
+              "example": {
+                "test_project_id": 10,
+                "feature_name": "payment_processing",
+                "feature_description": "Handles payment transactions and receipts",
+                "enabled": true
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature created successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Feature" }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Missing required fields",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 400,
+                  "message": "test_project_id and feature_name are required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/update/{id}": {
+      "put": {
+        "summary": "Update a feature",
+        "description": "Update the displayed name and/or enabled status of a feature. User must own the associated test project.",
+        "tags": ["Features"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The feature ID to update",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "displayedName": {
+                    "type": "string",
+                    "description": "New display name for the feature"
+                  },
+                  "enabled": {
+                    "type": "boolean",
+                    "description": "Whether the feature is enabled"
+                  }
+                }
+              },
+              "example": {
+                "displayedName": "Payment Processing v2",
+                "enabled": false
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Feature updated successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Feature" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found or no access",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/delete/{id}": {
+      "delete": {
+        "summary": "Delete a feature (soft delete)",
+        "description": "Soft delete a feature by setting the deleted flag. User must own the associated test project.",
+        "tags": ["Features"],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "The feature ID to delete",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Feature deleted successfully",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean", "example": true },
+                    "message": { "type": "string", "example": "Feature deleted successfully" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "Feature not found or no access",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/features/analyze": {
+      "post": {
+        "summary": "Analyze trace feature (AI-powered)",
+        "description": "Perform AI-powered analysis on a trace to detect prompt drift, classify the prompt fingerprint, and identify root causes of changes. No authentication required.",
+        "tags": ["AI Analysis"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["trace_id"],
+                "properties": {
+                  "trace_id": {
+                    "type": "string",
+                    "description": "The trace ID to analyze"
+                  }
+                }
+              },
+              "example": {
+                "trace_id": "trace-abc123"
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Analysis completed successfully",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AnalysisResult" },
+                "example": {
+                  "success": true,
+                  "trace_id": "trace-abc123",
+                  "feature_id": 5,
+                  "feature_name": "user_authentication",
+                  "prompt_fingerprint": "hash_xyz789",
+                  "root_cause": "SYSTEM_CHANGED",
+                  "confidence_score": 0.85,
+                  "analysis_details": {
+                    "previous_fingerprint": "hash_old456",
+                    "changes_detected": ["prompt_structure", "input_format"]
+                  },
+                  "message": "Prompt drift detected due to system changes"
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - trace_id required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 400,
+                  "message": "trace_id is required"
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

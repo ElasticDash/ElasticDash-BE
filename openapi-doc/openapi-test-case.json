@@ -1,0 +1,1204 @@
+{
+  "openapi": "3.0.3",
+  "info": {
+    "title": "ElasticDash Test Cases API",
+    "version": "1.0.0",
+    "description": "Comprehensive API for managing AI flow test cases, AI calls, test runs, drafts, and rerun operations."
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/testcases",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/testcases",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "TestCase": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "name": { "type": "string" },
+          "description": { "type": "string" },
+          "deleted": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "created_by": { "type": "integer" },
+          "updated_at": { "type": "string", "format": "date-time" },
+          "updated_by": { "type": "integer" }
+        }
+      },
+      "AiCall": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "test_case_id": { "type": "integer" },
+          "step_order": { "type": "integer" },
+          "ai_model": { "type": "string" },
+          "api_endpoint": { "type": "string" },
+          "input": {},
+          "expected_output": {},
+          "output_match_type": { "type": "string" },
+          "validation_prompt": { "type": "string" },
+          "deleted": { "type": "boolean" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "TestCaseRun": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "test_case_id": { "type": "integer" },
+          "status": { "type": "string" },
+          "started_at": { "type": "string", "format": "date-time" },
+          "completed_at": { "type": "string", "format": "date-time" },
+          "created_by": { "type": "integer" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "status": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "tags": [
+    { "name": "Test Cases", "description": "Test case CRUD operations" },
+    { "name": "AI Calls", "description": "AI call management within test cases" },
+    { "name": "Test Runs", "description": "Test case execution and runs" },
+    { "name": "Run Records", "description": "Batch test execution records" },
+    { "name": "Drafts", "description": "Test case draft management" },
+    { "name": "Rerun", "description": "Test rerun operations" },
+    { "name": "Utilities", "description": "Utility endpoints" }
+  ],
+  "paths": {
+    "/testcases/create": {
+      "post": {
+        "summary": "Create a new test case",
+        "tags": ["Test Cases"],
+        "security": [],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["name"],
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "created_by": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test case created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TestCase" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/edit/{id}": {
+      "put": {
+        "summary": "Edit a test case",
+        "tags": ["Test Cases"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "name": { "type": "string" },
+                  "description": { "type": "string" },
+                  "updated_by": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test case updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TestCase" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/list": {
+      "post": {
+        "summary": "List test cases with pagination and filters",
+        "description": "Returns paginated list of test cases for authenticated user",
+        "tags": ["Test Cases"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "limit": { "type": "integer", "default": 100 },
+                  "offset": { "type": "integer", "default": 0 },
+                  "filter": { "type": "string", "default": "" },
+                  "search": { "type": "string", "default": "" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of test cases",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "data": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/TestCase" }
+                    },
+                    "total": { "type": "integer" },
+                    "limit": { "type": "integer" },
+                    "offset": { "type": "integer" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/delete/{id}": {
+      "delete": {
+        "summary": "Delete a test case (soft delete)",
+        "tags": ["Test Cases"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test case deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/detail/{id}": {
+      "get": {
+        "summary": "Get test case detail with AI calls",
+        "tags": ["Test Cases"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test case detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "testCase": { "$ref": "#/components/schemas/TestCase" },
+                    "aiCalls": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/AiCall" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/aicalls/{id}": {
+      "post": {
+        "summary": "Create an AI call for a test case",
+        "tags": ["AI Calls"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "description": "Test case ID",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["step_order", "ai_model", "input", "expected_output"],
+                "properties": {
+                  "step_order": { "type": "integer" },
+                  "ai_model": { "type": "string" },
+                  "api_endpoint": { "type": "string" },
+                  "input": {},
+                  "expected_output": {},
+                  "output_match_type": { "type": "string" },
+                  "created_by": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI call created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AiCall" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/aicalls/update/{aiCallId}": {
+      "put": {
+        "summary": "Update an AI call",
+        "tags": ["AI Calls"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "aiCallId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "step_order": { "type": "integer" },
+                  "ai_model": { "type": "string" },
+                  "api_endpoint": { "type": "string" },
+                  "input": {},
+                  "expected_output": {},
+                  "output_match_type": { "type": "string" },
+                  "updated_by": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI call updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AiCall" }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid input",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/aicalls/{aiCallId}": {
+      "delete": {
+        "summary": "Delete an AI call (soft delete)",
+        "tags": ["AI Calls"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "aiCallId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "AI call deleted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/aicalls/validation-prompt": {
+      "put": {
+        "summary": "Update validation prompt for an AI call",
+        "tags": ["AI Calls"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["aiCallId", "validationPrompt"],
+                "properties": {
+                  "aiCallId": { "type": "integer" },
+                  "validationPrompt": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Validation prompt updated",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/AiCall" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/fromtrace": {
+      "post": {
+        "summary": "Create test case from trace",
+        "tags": ["Test Cases"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["traceId"],
+                "properties": {
+                  "traceId": { "type": "string" },
+                  "name": { "type": "string" },
+                  "description": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test case created from trace",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "testCase": { "$ref": "#/components/schemas/TestCase" },
+                    "aiCalls": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/AiCall" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Invalid trace or no valid data",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/run": {
+      "post": {
+        "summary": "Create a test case run",
+        "tags": ["Test Runs"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["id"],
+                "properties": {
+                  "id": { "type": "integer", "description": "Test case ID" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test run created",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TestCaseRun" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/runs": {
+      "get": {
+        "summary": "List all test case runs",
+        "tags": ["Test Runs"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of test runs",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": { "$ref": "#/components/schemas/TestCaseRun" }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/runs/{runId}": {
+      "get": {
+        "summary": "Get test case run details",
+        "tags": ["Test Runs"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "runId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Test run detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "run": { "$ref": "#/components/schemas/TestCaseRun" },
+                    "aiCalls": {
+                      "type": "array",
+                      "items": {
+                        "type": "object",
+                        "properties": {
+                          "id": { "type": "integer" },
+                          "step_order": { "type": "integer" },
+                          "ai_model": { "type": "string" },
+                          "run_input": {},
+                          "run_output": {},
+                          "validation_score": { "type": "number" },
+                          "run_status": { "type": "string" }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "404": {
+            "description": "Run not found",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/runrecords/create": {
+      "post": {
+        "summary": "Create test case run record (batch execution)",
+        "tags": ["Run Records"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["test_case_ids"],
+                "properties": {
+                  "test_case_ids": {
+                    "type": "array",
+                    "items": { "type": "integer" }
+                  },
+                  "times": { "type": "integer", "description": "Number of times to run each test" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Run record created",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "test_case_ids": { "type": "array", "items": { "type": "integer" } },
+                    "status": { "type": "string" },
+                    "created_at": { "type": "string", "format": "date-time" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/runrecords/list": {
+      "get": {
+        "summary": "List all test case run records",
+        "tags": ["Run Records"],
+        "security": [{ "bearerAuth": [] }],
+        "responses": {
+          "200": {
+            "description": "List of run records",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "status": { "type": "string" },
+                      "created_at": { "type": "string", "format": "date-time" },
+                      "completed_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/runrecords/aicall/approve": {
+      "put": {
+        "summary": "Approve or reject AI call in run record",
+        "tags": ["Run Records"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["testCaseRunAICallId", "approved"],
+                "properties": {
+                  "testCaseRunAICallId": { "type": "integer" },
+                  "approved": { "type": "boolean" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "AI call approval updated",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/runrecords/detail/{id}": {
+      "get": {
+        "summary": "Get test case run record detail",
+        "tags": ["Run Records"],
+        "security": [],
+        "parameters": [
+          {
+            "name": "id",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Run record detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "status": { "type": "string" },
+                    "test_case_runs": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/TestCaseRun" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/reset": {
+      "post": {
+        "summary": "Reset test case flow from project URL and trace metadata",
+        "tags": ["Test Cases"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["testCaseId"],
+                "properties": {
+                  "testCaseId": { "type": "integer" },
+                  "testCaseRunRecordId": { "type": "integer", "default": 0 }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test case reset successful",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/drafts/list": {
+      "get": {
+        "summary": "List test case drafts",
+        "tags": ["Drafts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "testCaseRunRecordId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "testCaseId",
+            "in": "query",
+            "required": false,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of drafts",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "integer" },
+                      "test_case_id": { "type": "integer" },
+                      "status": { "type": "string" },
+                      "created_at": { "type": "string", "format": "date-time" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "testCaseRunRecordId or testCaseId query parameter required",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/drafts/{draftId}": {
+      "get": {
+        "summary": "Get test case draft detail",
+        "tags": ["Drafts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft detail",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "id": { "type": "integer" },
+                    "test_case_id": { "type": "integer" },
+                    "draft_data": {},
+                    "status": { "type": "string" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/drafts/{draftId}/approve": {
+      "post": {
+        "summary": "Approve a test case draft",
+        "tags": ["Drafts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft approved",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/drafts/{draftId}/reject": {
+      "post": {
+        "summary": "Reject a test case draft",
+        "tags": ["Drafts"],
+        "security": [{ "bearerAuth": [] }],
+        "parameters": [
+          {
+            "name": "draftId",
+            "in": "path",
+            "required": true,
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Draft rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/rerun/accept": {
+      "post": {
+        "summary": "Accept a rerun and update AI calls",
+        "tags": ["Rerun"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["testCaseRunId"],
+                "properties": {
+                  "testCaseRunId": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rerun accepted",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/rerun/reject": {
+      "post": {
+        "summary": "Reject a rerun",
+        "tags": ["Rerun"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["testCaseRunId"],
+                "properties": {
+                  "testCaseRunId": { "type": "integer" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Rerun rejected",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "success": { "type": "boolean" }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/rerun/createtestcase": {
+      "post": {
+        "summary": "Create new test case from rerun",
+        "tags": ["Rerun"],
+        "security": [{ "bearerAuth": [] }],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["testCaseRunId"],
+                "properties": {
+                  "testCaseRunId": { "type": "integer" },
+                  "name": { "type": "string" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Test case created from rerun",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/TestCase" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/testcases/supportedaimodels/list": {
+      "post": {
+        "summary": "List supported AI models",
+        "tags": ["Utilities"],
+        "security": [],
+        "requestBody": {
+          "required": false,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "search": { "type": "string", "default": "" }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "List of supported AI models",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": { "type": "string" },
+                      "name": { "type": "string" },
+                      "provider": { "type": "string" }
+                    }
+                  }
+                }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

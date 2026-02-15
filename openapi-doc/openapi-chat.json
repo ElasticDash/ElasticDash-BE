@@ -1,0 +1,574 @@
+{
+  "openapi": "3.0.0",
+  "info": {
+    "title": "ElasticDash Chat API",
+    "description": "Chat completion and conversation management endpoints for ElasticDash platform",
+    "version": "1.0.0"
+  },
+  "servers": [
+    {
+      "url": "https://devserver.elasticdash.com/api/chat",
+      "description": "Development server"
+    },
+    {
+      "url": "https://server.elasticdash.com/api/chat",
+      "description": "Production server"
+    }
+  ],
+  "components": {
+    "securitySchemes": {
+      "bearerAuth": {
+        "type": "http",
+        "scheme": "bearer",
+        "bearerFormat": "JWT"
+      }
+    },
+    "schemas": {
+      "Message": {
+        "type": "object",
+        "required": ["role", "content"],
+        "properties": {
+          "id": { "type": "integer", "description": "Message ID" },
+          "role": {
+            "type": "string",
+            "enum": ["user", "assistant", "agent", "system"],
+            "description": "Role of the message sender"
+          },
+          "content": {
+            "type": "string",
+            "description": "Message content"
+          },
+          "time": {
+            "type": "string",
+            "format": "date-time",
+            "description": "Message timestamp"
+          },
+          "messageType": {
+            "type": "string",
+            "default": "text",
+            "description": "Type of message (text, plan, approval, etc.)"
+          }
+        }
+      },
+      "Conversation": {
+        "type": "object",
+        "properties": {
+          "id": { "type": "integer" },
+          "title": { "type": "string" },
+          "user_id": { "type": "integer" },
+          "created_at": { "type": "string", "format": "date-time" },
+          "updated_at": { "type": "string", "format": "date-time" }
+        }
+      },
+      "Error": {
+        "type": "object",
+        "properties": {
+          "error": { "type": "string" },
+          "message": { "type": "string" },
+          "status": { "type": "integer" }
+        }
+      }
+    }
+  },
+  "security": [{ "bearerAuth": [] }],
+  "paths": {
+    "/chat/completion": {
+      "post": {
+        "summary": "Chat completion with orchestrated planning and execution",
+        "description": "Submit a chat request with optional planning, approval, and execution flow. Supports multi-turn conversations with explicit plan approval workflow.",
+        "tags": ["Chat"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["messages"],
+                "properties": {
+                  "messages": {
+                    "type": "array",
+                    "description": "Array of conversation messages",
+                    "items": { "$ref": "#/components/schemas/Message" },
+                    "minItems": 1
+                  },
+                  "conversationId": {
+                    "type": "integer",
+                    "description": "ID of the conversation this message belongs to"
+                  },
+                  "isApproval": {
+                    "type": "boolean",
+                    "description": "Whether this is an explicit plan approval (true = user approves the plan)"
+                  },
+                  "customerUserId": {
+                    "type": "string",
+                    "description": "Customer user identifier for tracking"
+                  }
+                }
+              },
+              "examples": {
+                "newConversation": {
+                  "summary": "Start new conversation",
+                  "value": {
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "Help me analyze the sales data"
+                      }
+                    ]
+                  }
+                },
+                "approval": {
+                  "summary": "Approve a plan",
+                  "value": {
+                    "messages": [
+                      {
+                        "role": "user",
+                        "content": "yes, proceed"
+                      }
+                    ],
+                    "conversationId": 123,
+                    "isApproval": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat request accepted and processing",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "inProgress": {
+                      "type": "boolean",
+                      "example": true,
+                      "description": "Indicates the chat is being processed asynchronously"
+                    },
+                    "conversationId": {
+                      "type": "integer",
+                      "description": "ID of the conversation"
+                    },
+                    "isApproval": {
+                      "type": "boolean",
+                      "description": "Whether this was an approval request"
+                    },
+                    "customerUserId": {
+                      "type": "string",
+                      "description": "Customer user identifier"
+                    }
+                  }
+                },
+                "example": {
+                  "inProgress": true,
+                  "conversationId": 123,
+                  "isApproval": false
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid messages array",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 400,
+                  "message": "messages array required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "404": {
+            "description": "No session found for approval",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 404,
+                  "message": "No session found for this conversation."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/duplicated": {
+      "post": {
+        "summary": "Alternative chat endpoint with conversation-based flow",
+        "description": "Submit a chat message with automatic conversation history retrieval. Supports plan approval detection and multi-turn conversations.",
+        "tags": ["Chat"],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "required": ["message", "conversationId"],
+                "properties": {
+                  "message": {
+                    "type": "string",
+                    "description": "Current user message (non-empty)",
+                    "minLength": 1
+                  },
+                  "conversationId": {
+                    "type": "integer",
+                    "description": "ID of the conversation this message belongs to"
+                  },
+                  "isApproval": {
+                    "type": "boolean",
+                    "description": "Optional: true for explicit plan approval. If omitted, inferred from message content (e.g., 'approve', 'yes', 'proceed', 'ok', 'confirm', 'go ahead')"
+                  }
+                }
+              },
+              "examples": {
+                "normalRequest": {
+                  "summary": "Normal chat message",
+                  "value": {
+                    "message": "What are the top 10 customers by revenue?",
+                    "conversationId": 456
+                  }
+                },
+                "approvalRequest": {
+                  "summary": "Explicit approval",
+                  "value": {
+                    "message": "approve",
+                    "conversationId": 456,
+                    "isApproval": true
+                  }
+                }
+              }
+            }
+          }
+        },
+        "responses": {
+          "200": {
+            "description": "Chat response with various result types",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "oneOf": [
+                    {
+                      "type": "object",
+                      "description": "Resolution-only response",
+                      "properties": {
+                        "message": { "type": "string" },
+                        "refinedQuery": { "type": "string" },
+                        "topKResults": { "type": "array" },
+                        "planResponse": { "type": "string" },
+                        "planningDurationMs": { "type": "number" }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Executed plan response",
+                      "properties": {
+                        "message": { "type": "string" },
+                        "refinedQuery": { "type": "string" },
+                        "topKResults": { "type": "array" },
+                        "executedSteps": { "type": "array" },
+                        "accumulatedResults": { "type": "object" },
+                        "iterations": { "type": "integer" }
+                      }
+                    },
+                    {
+                      "type": "object",
+                      "description": "Awaiting approval response",
+                      "properties": {
+                        "message": { "type": "string" },
+                        "planSummary": { "type": "string" },
+                        "awaitingApproval": { "type": "boolean", "example": true },
+                        "conversationId": { "type": "integer" }
+                      }
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/history/{sessionId}/{firstMessageId}": {
+      "get": {
+        "summary": "Fetch chat history for a session",
+        "description": "Retrieve all messages for a specific session starting from a given message ID, ordered by ID ascending. Requires session ownership.",
+        "tags": ["Chat History"],
+        "parameters": [
+          {
+            "name": "sessionId",
+            "in": "path",
+            "required": true,
+            "description": "The session ID to retrieve messages for",
+            "schema": { "type": "string" }
+          },
+          {
+            "name": "firstMessageId",
+            "in": "path",
+            "required": true,
+            "description": "Starting message ID (inclusive)",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved chat history",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "sessionId": { "type": "string" },
+                    "firstMessageId": { "type": "integer" },
+                    "messages": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Message" }
+                    }
+                  }
+                },
+                "example": {
+                  "sessionId": "sess-123",
+                  "firstMessageId": 1,
+                  "messages": [
+                    {
+                      "id": 1,
+                      "role": "user",
+                      "content": "Hello",
+                      "time": "2026-02-15T10:00:00.000Z",
+                      "messageType": "text"
+                    },
+                    {
+                      "id": 2,
+                      "role": "assistant",
+                      "content": "Hi! How can I help?",
+                      "time": "2026-02-15T10:00:05.000Z",
+                      "messageType": "text"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 400,
+                  "message": "sessionId and valid firstMessageId required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - No access to this session",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 403,
+                  "message": "You do not have access to this session."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversation/{conversationId}/{lastMessageId}": {
+      "get": {
+        "summary": "Fetch messages by conversation ID",
+        "description": "Retrieve 20 messages from a conversation starting from a specific message ID. Requires conversation ownership.",
+        "tags": ["Conversations"],
+        "parameters": [
+          {
+            "name": "conversationId",
+            "in": "path",
+            "required": true,
+            "description": "The conversation ID to retrieve messages for",
+            "schema": { "type": "integer" }
+          },
+          {
+            "name": "lastMessageId",
+            "in": "path",
+            "required": true,
+            "description": "Last message ID for pagination",
+            "schema": { "type": "integer" }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved conversation messages",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conversationId": { "type": "integer" },
+                    "lastMessageId": { "type": "integer" },
+                    "messages": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Message" }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "400": {
+            "description": "Bad request - Invalid parameters",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 400,
+                  "message": "conversationId and valid lastMessageId required"
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "403": {
+            "description": "Forbidden - No access to this conversation",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" },
+                "example": {
+                  "status": 403,
+                  "message": "You do not have access to this conversation."
+                }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    },
+    "/chat/conversations": {
+      "get": {
+        "summary": "List all conversations for authenticated user",
+        "description": "Retrieve a list of all conversations belonging to the authenticated user, ordered by updated_at descending.",
+        "tags": ["Conversations"],
+        "responses": {
+          "200": {
+            "description": "Successfully retrieved conversations",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "conversations": {
+                      "type": "array",
+                      "items": { "$ref": "#/components/schemas/Conversation" }
+                    }
+                  }
+                },
+                "example": {
+                  "conversations": [
+                    {
+                      "id": 123,
+                      "title": "Data Analysis Discussion",
+                      "user_id": 456,
+                      "created_at": "2026-02-15T09:00:00.000Z",
+                      "updated_at": "2026-02-15T10:30:00.000Z"
+                    }
+                  ]
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          },
+          "500": {
+            "description": "Internal server error",
+            "content": {
+              "application/json": {
+                "schema": { "$ref": "#/components/schemas/Error" }
+              }
+            }
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,29 @@
+{
+  "testCase": {
+    "invalidInput": "测试用例输入无效。",
+    "invalidAiCallInput": "AI调用输入无效。",
+    "sessionIdRequired": "会话ID为必填项。",
+    "createFromTraceFailed": "从追踪创建测试用例失败。"
+  },
+  "persona": {
+    "invalidInput": "用户画像输入无效。",
+    "companyEmployee": "公司员工",
+    "hrRepresentative": "人力资源代表",
+    "executive": "高管",
+    "jobSeeker": "求职者",
+    "shopper": "购物者",
+    "seller": "卖家",
+    "customerSupport": "客服支持",
+    "bargainHunter": "优惠猎人",
+    "businessProfessional": "商务专业人士",
+    "technicalExpert": "技术专家",
+    "budgetShopper": "价格敏感型购物者",
+    "earlyAdopter": "早期采用者",
+    "supportSeeker": "寻求支持者",
+    "randomPasserby": "随机访客",
+    "tester": "测试人员"
+  },
+  "traces": {
+    "notFound": "未找到对应的追踪记录。"
+  }
+}

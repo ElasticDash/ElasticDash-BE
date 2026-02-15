@@ -1,0 +1,29 @@
+{
+  "testCase": {
+    "invalidInput": "Invalid test case input.",
+    "invalidAiCallInput": "Invalid AI call input.",
+    "sessionIdRequired": "Session ID is required.",
+    "createFromTraceFailed": "Failed to create test case from traces."
+  },
+  "persona": {
+    "invalidInput": "Invalid persona input.",
+    "companyEmployee": "Company Employee",
+    "hrRepresentative": "HR Representative",
+    "executive": "Executive",
+    "jobSeeker": "Job Seeker",
+    "shopper": "Shopper",
+    "seller": "Seller",
+    "customerSupport": "Customer Support",
+    "bargainHunter": "Bargain Hunter",
+    "businessProfessional": "Business Professional",
+    "technicalExpert": "Technical Expert",
+    "budgetShopper": "Budget Shopper",
+    "earlyAdopter": "Early Adopter",
+    "supportSeeker": "Support Seeker",
+    "randomPasserby": "Random Passerby",
+    "tester": "Tester"
+  },
+  "traces": {
+    "notFound": "Trace not found."
+  }
+}

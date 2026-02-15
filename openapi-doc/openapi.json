@@ -1,0 +1,324 @@
+{
+  "available_documentation_files": {
+    "description": "这是所有可用的 API 文档文件列表。当你需要了解特定模块的 API 详情时，使用 load_docs 请求加载对应的模块 ID。",
+    "files": [
+      {
+        "module_id": "auth",
+        "title": "ElasticDash Auth API",
+        "description": "Authentication endpoints for ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~15KB"
+      },
+      {
+        "module_id": "user",
+        "title": "ElasticDash User API",
+        "description": "User management endpoints for ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~20KB"
+      },
+      {
+        "module_id": "project",
+        "title": "ElasticDash Project API",
+        "description": "Project management endpoints for ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~18KB"
+      },
+      {
+        "module_id": "admin",
+        "title": "ElasticDash Admin API",
+        "description": "Admin management endpoints for ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~22KB"
+      },
+      {
+        "module_id": "general",
+        "title": "ElasticDash General API",
+        "description": "General purpose endpoints for ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~25KB"
+      },
+      {
+        "module_id": "pokemon",
+        "title": "ElasticDash Pokémon API",
+        "description": "Pokémon data endpoints for ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~25KB"
+      },
+      {
+        "module_id": "tasks",
+        "title": "ElasticDash Tasks API",
+        "description": "API for managing saved tasks in ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~30KB"
+      },
+      {
+        "module_id": "traces",
+        "title": "ElasticDash Traces API",
+        "description": "Trace and session management endpoints for ElasticDash platform",
+        "version": "1.0.0",
+        "size_estimate": "~35KB"
+      },
+      {
+        "module_id": "chat",
+        "title": "ElasticDash Chat API",
+        "description": "Chat completion and conversation management endpoints",
+        "version": "1.0.0",
+        "size_estimate": "~40KB"
+      },
+      {
+        "module_id": "trace-analysis",
+        "title": "ElasticDash Trace Analysis API",
+        "description": "AI-powered trace analysis and prompt fingerprinting endpoints",
+        "version": "1.0.0",
+        "size_estimate": "~45KB"
+      },
+      {
+        "module_id": "features",
+        "title": "ElasticDash Features API",
+        "description": "Test project feature management and AI analysis endpoints",
+        "version": "1.0.0",
+        "size_estimate": "~30KB"
+      },
+      {
+        "module_id": "test-case",
+        "title": "ElasticDash Test Cases API",
+        "description": "Test case management and execution endpoints",
+        "version": "1.0.0",
+        "size_estimate": "~50KB"
+      },
+      {
+        "module_id": "persona",
+        "title": "ElasticDash Persona API",
+        "description": "Persona management endpoints",
+        "version": "1.0.0",
+        "size_estimate": "~15KB"
+      },
+      {
+        "module_id": "plan",
+        "title": "ElasticDash Plan API",
+        "description": "Plan management endpoints",
+        "version": "1.0.0",
+        "size_estimate": "~15KB"
+      }
+    ],
+    "usage_instructions": [
+      "1. 此文件列出了所有可用的 API 文档模块",
+      "2. 当需要了解某个模块的详细 API 时，使用 {\"load_docs\": [\"module_id\"]} 格式请求加载",
+      "3. 可以一次加载多个模块：{\"load_docs\": [\"auth\", \"user\", \"project\"]}",
+      "4. 已加载的模块会自动缓存，无需重复加载",
+      "5. 优先只加载需要的模块以节省上下文空间"
+    ],
+    "total_modules": 15,
+    "total_size_estimate": "~350KB (if all loaded)",
+    "note": "此索引文件始终可见，帮助你了解可用的 API 文档资源"
+  },
+  "paths": {
+    "/task": {
+      "post": {
+        "summary": "Create a saved task",
+        "description": "Creates a new task and saves it to the database.",
+        "tags": ["Tasks"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "requestBody": {
+          "required": true,
+          "content": {
+            "application/json": {
+              "schema": {
+                "type": "object",
+                "properties": {
+                  "taskName": {
+                    "type": "string",
+                    "description": "The name of the task."
+                  },
+                  "taskType": {
+                    "type": "integer",
+                    "description": "The type of the task (e.g., 1 for FETCH, 2 for MODIFY)."
+                  },
+                  "taskContent": {
+                    "type": "string",
+                    "description": "The content of the task."
+                  },
+                  "taskSteps": {
+                    "type": "array",
+                    "items": {
+                      "type": "object",
+                      "properties": {
+                        "stepOrder": {
+                          "type": "integer",
+                          "description": "The order of the step."
+                        },
+                        "stepType": {
+                          "type": "integer",
+                          "description": "The type of the step (e.g., 1 for FETCH, 2 for MODIFY)."
+                        },
+                        "stepContent": {
+                          "type": "string",
+                          "description": "The content of the step."
+                        }
+                      }
+                    }
+                  }
+                },
+                "required": ["taskName", "taskType", "taskContent", "taskSteps"]
+              }
+            }
+          }
+        },
+        "responses": {
+          "201": {
+            "description": "Task created successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "taskId": {
+                      "type": "integer",
+                      "description": "The ID of the created task."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Token is invalid or expired."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
+    },
+    "/task/list": {
+      "get": {
+        "summary": "Get saved tasks",
+        "description": "Retrieves all saved tasks for the authenticated user.",
+        "tags": ["Tasks"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "List of saved tasks.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "array",
+                  "items": {
+                    "type": "object",
+                    "properties": {
+                      "id": {
+                        "type": "integer",
+                        "description": "The ID of the task."
+                      },
+                      "taskName": {
+                        "type": "string",
+                        "description": "The name of the task."
+                      },
+                      "taskType": {
+                        "type": "integer",
+                        "description": "The type of the task."
+                      },
+                      "taskContent": {
+                        "type": "string",
+                        "description": "The content of the task."
+                      },
+                      "createdAt": {
+                        "type": "string",
+                        "format": "date-time",
+                        "description": "The creation timestamp of the task."
+                      },
+                      "steps": {
+                        "type": "array",
+                        "items": {
+                          "type": "object",
+                          "properties": {
+                            "stepOrder": {
+                              "type": "integer",
+                              "description": "The order of the step."
+                            },
+                            "stepType": {
+                              "type": "integer",
+                              "description": "The type of the step."
+                            },
+                            "stepContent": {
+                              "type": "string",
+                              "description": "The content of the step."
+                            }
+                          }
+                        }
+                      }
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Token is invalid or expired."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
+    },
+    "/task/single/{taskId}": {
+      "delete": {
+        "summary": "Delete a saved task",
+        "description": "Marks a saved task as deleted.",
+        "tags": ["Tasks"],
+        "security": [
+          {
+            "bearerAuth": []
+          }
+        ],
+        "parameters": [
+          {
+            "name": "taskId",
+            "in": "path",
+            "required": true,
+            "description": "The ID of the task to delete.",
+            "schema": {
+              "type": "integer"
+            }
+          }
+        ],
+        "responses": {
+          "200": {
+            "description": "Task deleted successfully.",
+            "content": {
+              "application/json": {
+                "schema": {
+                  "type": "object",
+                  "properties": {
+                    "message": {
+                      "type": "string",
+                      "description": "Success message."
+                    }
+                  }
+                }
+              }
+            }
+          },
+          "401": {
+            "description": "Unauthorized. Token is invalid or expired."
+          },
+          "404": {
+            "description": "Task not found or not authorized to delete."
+          },
+          "500": {
+            "description": "Internal server error."
+          }
+        }
+      }
+    }
+  }
+}
