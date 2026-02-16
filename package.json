@@ -35,7 +35,7 @@
     "form-data": "^4.0.0",
     "gm": "^1.25.0",
     "google-auth-library": "^9.14.2",
-    "googleapis": "^144.0.0",
+    "googleapis": "^171.4.0",
     "jimp": "^0.22.12",
     "json5": "^2.2.3",
     "jsonwebtoken": "^9.0.2",
