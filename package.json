@@ -19,7 +19,7 @@
     "@elasticdash/openai": "^0.0.10",
     "@elasticdash/otel": "^0.0.10",
     "@google/genai": "^1.40.0",
-    "@opensearch-project/opensearch": "^1.2.0",
+    "@opensearch-project/opensearch": "^3.5.1",
     "@opentelemetry/sdk-node": "^0.210.0",
     "aws-sdk": "^2.1692.0",
     "axios": "^0.21.1",
