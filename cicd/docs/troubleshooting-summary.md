@@ -1,7 +1,7 @@
 # CI/CD Pipeline Troubleshooting Summary
 
 ## 概述
-本文档总结了ElasticDash API CI/CD管道实施过程中遇到的所有问题及解决方案。
+本文档总结了ElasticDash Backend CI/CD管道实施过程中遇到的所有问题及解决方案。
 
 ## 问题1: EventBridge权限错误
 **错误**: CloudFormation部署失败，EventBridge相关权限问题

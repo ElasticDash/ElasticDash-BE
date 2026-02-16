@@ -1,6 +1,6 @@
-# ElasticDash API CI/CD Pipeline
+# ElasticDash Backend CI/CD Pipeline
 
-This directory contains the CI/CD pipeline configuration for automatically building and deploying the ElasticDash API when the `development_EKS` branch is updated.
+This directory contains the CI/CD pipeline configuration for automatically building and deploying the ElasticDash Backend when the `development_EKS` branch is updated.
 
 ## 📁 Directory Structure
 

@@ -2,7 +2,7 @@
 
 ## Overview
 
-This document describes the current RAG (Retrieval-Augmented Generation) implementation for the ElasticDash API project management system. The system allows users to create projects, upload API and database documentation, and prepare them for LLM-based querying through a structured staging workflow with draft/active versioning.
+This document describes the current RAG (Retrieval-Augmented Generation) implementation for the ElasticDash Backend project management system. The system allows users to create projects, upload API and database documentation, and prepare them for LLM-based querying through a structured staging workflow with draft/active versioning.
 
 ## Architecture: Staging Workflow
 

@@ -1,4 +1,4 @@
--- Chat system tables for ElasticDash API
+-- Chat system tables for ElasticDash Backend
 -- PostgreSQL compatible schema
 
 -- ============================================================

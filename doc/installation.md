@@ -1,6 +1,6 @@
 # Installation Guide
 
-This guide walks you through installing and setting up the ElasticDash API on your local development environment.
+This guide walks you through installing and setting up the ElasticDash Backend on your local development environment.
 
 ## Prerequisites
 

@@ -1,6 +1,6 @@
 # Architecture Guide
 
-This document explains the technical architecture, design patterns, and project structure of ElasticDash API.
+This document explains the technical architecture, design patterns, and project structure of ElasticDash Backend.
 
 ## High-Level Architecture
 
@@ -12,7 +12,7 @@ This document explains the technical architecture, design patterns, and project 
                        │ HTTPS/WSS
                        ▼
 ┌─────────────────────────────────────────────────────────────────┐
-│                    ElasticDash API Server                        │
+│                    ElasticDash Backend Server                        │
 │  ┌──────────────────────────────────────────────────────────┐  │
 │  │  Express.js Application (index.js)                       │  │
 │  │  - CORS Middleware                                       │  │

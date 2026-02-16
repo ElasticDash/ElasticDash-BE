@@ -1,4 +1,4 @@
--- ElasticDash API - Latest Database Schema
+-- ElasticDash Backend - Latest Database Schema
 -- This file contains the complete, latest database schema
 -- It is safe to run multiple times (uses IF NOT EXISTS and other safeguards)
 

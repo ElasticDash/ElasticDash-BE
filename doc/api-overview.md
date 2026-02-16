@@ -1,6 +1,6 @@
 # API Overview
 
-This document provides a high-level overview of all API services available in ElasticDash API.
+This document provides a high-level overview of all API services available in ElasticDash Backend.
 
 ## ⚠️ Important: Test Services
 
@@ -51,7 +51,7 @@ Authorization: Bearer eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9...
 
 ## API Services
 
-ElasticDash API is organized into 14 service modules, each handling specific functionality:
+ElasticDash Backend is organized into 14 service modules, each handling specific functionality:
 
 ### 1. Authentication Service (`/auth`)
 

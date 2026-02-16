@@ -1,6 +1,6 @@
 # Configuration Guide
 
-This guide explains all configuration options and environment variables needed to run ElasticDash API.
+This guide explains all configuration options and environment variables needed to run ElasticDash Backend.
 
 ## Environment Files
 

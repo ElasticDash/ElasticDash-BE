@@ -1,6 +1,6 @@
-# ElasticDash API
+# ElasticDash Backend
 
-Welcome to the **ElasticDash API**! This backend project powers the ElasticDash platform, providing robust endpoints for managing and visualizing data with high performance and scalability. The API is built with a focus on flexibility, efficiency, and ease of integration with the ElasticDash frontend.
+Welcome to the **ElasticDash Backend**! This backend project powers the ElasticDash platform, providing robust endpoints for managing and visualizing data with high performance and scalability. The API is built with a focus on flexibility, efficiency, and ease of integration with the ElasticDash frontend.
 
 ---
 
@@ -76,7 +76,7 @@ See `database/chat.sql` for full schema and indexes.
 ### Chat-Specific Environment
 Set these in `.env` for the chat flow:
 - `OPENAI_API_KEY` – required for planner/executor/verifier prompts.
-- `BACKEND_URL` – base URL for downstream ElasticDash API calls (primary default). Falls back to `ELASTICDASH_API_URL` if not set.
+- `BACKEND_URL` – base URL for downstream ElasticDash Backend calls (primary default). Falls back to `ELASTICDASH_API_URL` if not set.
 - `ELASTICDASH_TOKEN` – fallback token if client does not send Authorization.
 - `DB_HOST`, `DB_PORT`, `DB_NAME`, `DB_USER`, `DB_PASSWORD` – PostgreSQL connection details (required for chat persistence).
 
@@ -146,7 +146,7 @@ docs/
 
 ## Deployment
 
-To deploy the ElasticDash API, ensure the environment variables are properly set up and use a process manager like **PM2** for production environments:
+To deploy the ElasticDash Backend, ensure the environment variables are properly set up and use a process manager like **PM2** for production environments:
 ```bash
 npm install -g pm2
 pm2 start npm --name "elasticdash-api" -- start

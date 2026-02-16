@@ -1,6 +1,6 @@
 # Getting Started Guide
 
-This guide provides a step-by-step walkthrough to get ElasticDash API running on your local machine.
+This guide provides a step-by-step walkthrough to get ElasticDash Backend running on your local machine.
 
 ## Prerequisites Checklist
 

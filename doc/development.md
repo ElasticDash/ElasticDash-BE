@@ -1,6 +1,6 @@
 # Development Guidelines
 
-This guide provides coding standards, best practices, and development workflows for contributing to ElasticDash API.
+This guide provides coding standards, best practices, and development workflows for contributing to ElasticDash Backend.
 
 ## Coding Standards
 

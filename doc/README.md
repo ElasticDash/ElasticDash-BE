@@ -1,6 +1,6 @@
-# ElasticDash API Documentation
+# ElasticDash Backend Documentation
 
-Welcome to the ElasticDash API documentation. This comprehensive guide will help you set up, configure, and develop with the ElasticDash API platform.
+Welcome to the ElasticDash Backend documentation. This comprehensive guide will help you set up, configure, and develop with the ElasticDash Backend platform.
 
 ## What is ElasticDash?
 
