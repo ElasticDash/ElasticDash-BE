@@ -306,6 +306,7 @@ export async function analyzeTraceFeature(traceId) {
                 o.id,
                 o.input,
                 o.output,
+                o.provided_model_name,
                 o.name,
                 o.type,
                 o.metadata,
@@ -341,6 +342,7 @@ export async function analyzeTraceFeature(traceId) {
             let needsUpdate = false;
             let newInput = obs.input;
             let newOutput = obs.output;
+            obs.modelName = obs.provided_model_name;
             if (attrs) {
                 if ((!obs.input || obs.input === '' || obs.input === '{}') && obs.obs_input) {
                     newInput = obs.obs_input;
