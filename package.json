@@ -32,7 +32,7 @@
     "esm": "^3.2.25",
     "express": "^4.20.2",
     "express-xml-bodyparser": "^0.3.0",
-    "form-data": "^4.0.0",
+    "form-data": "^4.0.5",
     "gm": "^1.25.0",
     "google-auth-library": "^9.14.2",
     "googleapis": "^144.0.0",
