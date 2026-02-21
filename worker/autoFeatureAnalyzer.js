@@ -74,25 +74,23 @@ async function getUnanalyzedTraces(limit = BATCH_SIZE) {
           SELECT MAX(o.updated_at) as latest_update
           FROM observations o
           WHERE o.trace_id = '${trace.id}'
-            AND (
-              JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.input') IS NOT NULL
-              AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.input') != ''
-            ) OR (
-              o.input IS NOT NULL AND o.input != ''
-            )
-            AND (
-              JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.output') IS NOT NULL
-              AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.output') != ''
-            ) OR (
-              o.output IS NOT NULL AND o.output != ''
-            )
-            AND (
-              JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.model.name') IS NOT NULL
-              AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.model.name') != ''
-            ) OR (
-              o.provided_model_name IS NOT NULL AND o.provided_model_name != ''
-            )
             AND o.name != 'handleChatRequest'
+            AND (
+              (
+                JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.input') IS NOT NULL
+                AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.input') != ''
+                AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.output') IS NOT NULL
+                AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.output') != ''
+                AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.model.name') IS NOT NULL
+                AND JSONExtractString(o.metadata['attributes'], 'elasticdash.observation.model.name') != ''
+              )
+              OR
+              (
+                o.input IS NOT NULL AND o.input != ''
+                AND o.output IS NOT NULL AND o.output != ''
+                AND o.provided_model_name IS NOT NULL AND o.provided_model_name != ''
+              )
+            )
         `;
 
         const obsResult = await clickhouseClient.query({ query: obsQuery });
